@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+.DS_Store
+
+# env files — never commit secrets
+.env
+.env.local
+.env.production
+
+# Python
+ai/venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/settings.json
+.idea/
