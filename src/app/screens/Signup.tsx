@@ -5,17 +5,24 @@ import { useAppContext } from "../context/AppContext";
 
 export function Signup() {
   const navigate = useNavigate();
-  const { t } = useAppContext();
+  const { t, registerUser } = useAppContext();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup - navigate to home
+    setLoading(true);
+    const result = await registerUser(formData.email, formData.password, formData.name);
+    setLoading(false);
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
     navigate("/home");
   };
 
@@ -126,9 +133,10 @@ export function Signup() {
           {/* Sign Up Button */}
           <button
             type="submit"
-            className="w-full py-4 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-shadow mt-6"
+            disabled={loading}
+            className="w-full py-4 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-shadow mt-6 disabled:opacity-70"
           >
-            {t("createAccount")}
+            {loading ? "Đang đăng ký..." : t("createAccount")}
           </button>
         </form>
 

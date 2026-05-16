@@ -1,7 +1,7 @@
 const router = require('express').Router();
+const authMiddleware = require('../middleware/auth');
 const { getOutfitSuggestions } = require('../controllers/outfitController');
 
-router.get('/', (_req, res) => res.json({ ok: true, route: 'outfit' }));
-router.get('/:season', getOutfitSuggestions);
+router.get('/:season', authMiddleware, getOutfitSuggestions);
 
 module.exports = router;

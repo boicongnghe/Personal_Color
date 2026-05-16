@@ -22,31 +22,39 @@ import { Privacy } from "./screens/Privacy";
 import { ScanHistory } from "./screens/ScanHistory";
 import { AddClothing } from "./screens/AddClothing";
 import { AdminGuard } from "./components/AdminGuard";
+import { RequireAuth } from "./components/RequireAuth";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: Root,
     children: [
+      // ── Public routes ──
       { index: true, Component: Welcome },
       { path: "login", Component: Login },
       { path: "signup", Component: Signup },
       { path: "forgot-password", Component: ForgotPassword },
-      { path: "home", Component: Home },
-      { path: "scan", Component: FaceScan },
-      { path: "analysis-result", Component: AnalysisResult },
-      { path: "outfits", Component: OutfitRecommendations },
-      { path: "wardrobe", Component: Wardrobe },
-      { path: "profile", Component: Profile },
-      { path: "premium", Component: PremiumUpgrade },
-      { path: "premium-upgrade", Component: PremiumUpgrade },
-      { path: "premium-setup", Component: PremiumSetup },
-      { path: "smart-advisor", Component: SmartAdvisor },
-      { path: "style-others", Component: StyleOthers },
-      { path: "settings", Component: Settings },
-      { path: "privacy", Component: Privacy },
-      { path: "scan-history", Component: ScanHistory },
-      { path: "add-clothing", Component: AddClothing },
+      // ── Protected routes (require login) ──
+      {
+        Component: RequireAuth,
+        children: [
+          { path: "home", Component: Home },
+          { path: "scan", Component: FaceScan },
+          { path: "analysis-result", Component: AnalysisResult },
+          { path: "outfits", Component: OutfitRecommendations },
+          { path: "wardrobe", Component: Wardrobe },
+          { path: "profile", Component: Profile },
+          { path: "premium", Component: PremiumUpgrade },
+          { path: "premium-upgrade", Component: PremiumUpgrade },
+          { path: "premium-setup", Component: PremiumSetup },
+          { path: "smart-advisor", Component: SmartAdvisor },
+          { path: "style-others", Component: StyleOthers },
+          { path: "settings", Component: Settings },
+          { path: "privacy", Component: Privacy },
+          { path: "scan-history", Component: ScanHistory },
+          { path: "add-clothing", Component: AddClothing },
+        ],
+      },
       // ── Admin routes (chỉ dành cho role "admin") ──
       {
         Component: AdminGuard,

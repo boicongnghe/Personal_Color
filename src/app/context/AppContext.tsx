@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  login as apiLogin,
+  register as apiRegister,
+  getMe,
+  getWardrobe as apiGetWardrobe,
+  deleteWardrobeItem as apiDeleteWardrobeItem,
+} from "../../api/api";
 
 export type Language = "en" | "vi";
 export type UserRole = "user" | "admin";
@@ -22,7 +29,7 @@ export type User = {
 };
 
 export type WardrobeItem = {
-  id: number;
+  id: number | string;
   name: string;
   category: string;
   match: number;
@@ -49,7 +56,10 @@ type AppContextType = {
   user: User;
   updateUser: (data: Partial<User>) => void;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => { success: boolean; role: UserRole | null; message: string };
+  authLoading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; role: UserRole | null; message: string }>;
+  registerUser: (email: string, password: string, displayName: string) => Promise<{ success: boolean; message: string }>;
+  loadWardrobe: () => Promise<void>;
   logout: () => void;
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -58,7 +68,7 @@ type AppContextType = {
   updateBankInfo: (data: Partial<BankInfo>) => void;
   wardrobeList: WardrobeItem[];
   addWardrobeItem: (item: Omit<WardrobeItem, "id">) => void;
-  deleteWardrobeItem: (id: number) => void;
+  deleteWardrobeItem: (id: number | string) => void;
   scanHistory: ScanHistoryItem[];
   addScanHistory: (scan: Omit<ScanHistoryItem, "id">) => void;
   deleteScanHistory: (id: string) => void;
@@ -490,7 +500,10 @@ const defaultContextValue: AppContextType = {
   },
   updateUser: () => {},
   isLoggedIn: false,
-  login: () => ({ success: false, role: null, message: "" }),
+  authLoading: true,
+  login: () => Promise.resolve({ success: false, role: null, message: "" }),
+  registerUser: () => Promise.resolve({ success: false, message: "" }),
+  loadWardrobe: () => Promise.resolve(),
   logout: () => {},
   language: "vi",
   setLanguage: () => {},
@@ -514,16 +527,19 @@ const defaultContextValue: AppContextType = {
 
 const AppContext = createContext<AppContextType>(defaultContextValue);
 
-// ── Mock accounts ──────────────────────────────────────────────────────────
-const ACCOUNTS: Array<{ email: string; password: string; role: UserRole; name: string; isPremium: boolean }> = [
-  { email: "admin@gmail.com", password: "123", role: "admin", name: "Admin Clarity", isPremium: true },
-  { email: "user@gmail.com",  password: "123", role: "user",  name: "Nguyễn Văn A",  isPremium: false },
-];
-// ──────────────────────────────────────────────────────────────────────────
+const CATEGORY_MAP: Record<string, string> = {
+  top: "Áo",
+  bottom: "Quần",
+  shoes: "Giày dép",
+  accessory: "Phụ kiện",
+};
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400";
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguage] = useState<Language>("vi");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User>({
     name: "Nguyễn Văn A",
     email: "nguyen.vana@example.com",
@@ -644,23 +660,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
 
-  const deleteWardrobeItem = (id: number) => {
-    setWardrobeList(prev => prev.filter(item => item.id !== id));
-    setUser(prev => ({ ...prev, wardrobeItems: prev.wardrobeItems - 1 }));
+  const deleteWardrobeItem = (id: number | string) => {
+    setWardrobeList((prev: WardrobeItem[]) => prev.filter((item: WardrobeItem) => item.id !== id));
+    setUser((prev: User) => ({ ...prev, wardrobeItems: prev.wardrobeItems - 1 }));
+    apiDeleteWardrobeItem(String(id)).catch(() => {});
   };
 
   const addWardrobeItem = (item: Omit<WardrobeItem, "id">) => {
     const newId = Date.now();
-    setWardrobeList(prev => [{ id: newId, ...item }, ...prev]);
-    setUser(prev => ({ ...prev, wardrobeItems: prev.wardrobeItems + 1 }));
+    setWardrobeList((prev: WardrobeItem[]) => [{ id: newId, ...item }, ...prev]);
+    setUser((prev: User) => ({ ...prev, wardrobeItems: prev.wardrobeItems + 1 }));
   };
 
   const addScanHistory = (scan: Omit<ScanHistoryItem, "id">) => {
-    setScanHistory(prev => [{ id: Math.random().toString(), ...scan }, ...prev]);
+    setScanHistory((prev: ScanHistoryItem[]) => [{ id: Math.random().toString(), ...scan }, ...prev]);
   };
 
   const deleteScanHistory = (id: string) => {
-    setScanHistory(prev => prev.filter(item => item.id !== id));
+    setScanHistory((prev: ScanHistoryItem[]) => prev.filter((item: ScanHistoryItem) => item.id !== id));
   };
 
   const [bankInfo, setBankInfo] = useState<BankInfo>({
@@ -671,39 +688,112 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const updateUser = (data: Partial<User>) => {
-    setUser((prev) => ({ ...prev, ...data }));
+    setUser((prev: User) => ({ ...prev, ...data }));
   };
 
   const updateBankInfo = (data: Partial<BankInfo>) => {
-    setBankInfo((prev) => ({ ...prev, ...data }));
+    setBankInfo((prev: BankInfo) => ({ ...prev, ...data }));
   };
 
   const t = (key: string): string => {
-    const langTranslations = translations[language];
+    const langTranslations = translations[language as keyof typeof translations];
     return (langTranslations as Record<string, string>)[key] || key;
   };
 
   const [lastScanResultId, setLastScanResultId] = useState<string | null>(null);
 
-  const login = (email: string, password: string): { success: boolean; role: UserRole | null; message: string } => {
-    const found = ACCOUNTS.find(
-      (a) => a.email.toLowerCase() === email.toLowerCase() && a.password === password
-    );
-    if (!found) {
-      return { success: false, role: null, message: "Email hoặc mật khẩu không đúng" };
+  useEffect(() => {
+    const token = localStorage.getItem("clarity_token");
+    if (!token) { setAuthLoading(false); return; }
+    getMe()
+      .then((res: { data: { data: { displayName?: string; email: string; subscriptionTier?: string } } }) => {
+        const u = res.data.data;
+        setIsLoggedIn(true);
+        setUser((prev: User) => ({
+          ...prev,
+          name: u.displayName || u.email,
+          email: u.email,
+          role: "user" as UserRole,
+          isPremium: u.subscriptionTier === "premium",
+        }));
+      })
+      .catch(() => {
+        localStorage.removeItem("clarity_token");
+      })
+      .finally(() => {
+        setAuthLoading(false);
+      });
+  }, []);
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; role: UserRole | null; message: string }> => {
+    try {
+      const res = await apiLogin(email, password);
+      const { token, user: u } = res.data.data;
+      localStorage.setItem("clarity_token", token);
+      setIsLoggedIn(true);
+      setUser((prev: User) => ({
+        ...prev,
+        name: u.displayName || u.email,
+        email: u.email,
+        role: "user" as UserRole,
+        isPremium: u.subscriptionTier === "premium",
+      }));
+      return { success: true, role: "user" as UserRole, message: "Đăng nhập thành công" };
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        "Email hoặc mật khẩu không đúng";
+      return { success: false, role: null, message };
     }
-    setIsLoggedIn(true);
-    setUser(prev => ({
-      ...prev,
-      name: found.name,
-      email: found.email,
-      role: found.role,
-      isPremium: found.isPremium,
-    }));
-    return { success: true, role: found.role, message: "Đăng nhập thành công" };
+  };
+
+  const registerUser = async (email: string, password: string, displayName: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await apiRegister(email, password, displayName);
+      const { token, user: u } = res.data.data;
+      localStorage.setItem("clarity_token", token);
+      setIsLoggedIn(true);
+      setUser((prev: User) => ({
+        ...prev,
+        name: u.displayName || displayName,
+        email: u.email,
+        role: "user" as UserRole,
+        isPremium: false,
+      }));
+      return { success: true, message: "Đăng ký thành công" };
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        "Đăng ký thất bại";
+      return { success: false, message };
+    }
+  };
+
+  const loadWardrobe = async (): Promise<void> => {
+    try {
+      const res = await apiGetWardrobe();
+      const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; imageUrl?: string }> =
+        res.data.data?.items || [];
+      const transformed: WardrobeItem[] = apiItems.map((item) => ({
+        id: item._id,
+        name: item.name,
+        category: CATEGORY_MAP[item.category] || item.category,
+        match: 90,
+        occasions: item.seasons && item.seasons.length > 0
+          ? [item.seasons[0].split("-")[0] === "spring" || item.seasons[0].split("-")[0] === "summer"
+              ? "Thường ngày"
+              : "Công sở"]
+          : ["Thường ngày"],
+        image: item.imageUrl || FALLBACK_IMAGE,
+      }));
+      setWardrobeList(transformed);
+    } catch {
+      // silent — keep existing list
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem("clarity_token");
     setIsLoggedIn(false);
     setUser({
       name: "",
@@ -715,11 +805,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       wardrobeItems: 0,
       role: "user",
     });
+    setWardrobeList([]);
   };
 
   return (
-    <AppContext.Provider value={{ 
-      user, updateUser, isLoggedIn, login, logout,
+    <AppContext.Provider value={{
+      user, updateUser, isLoggedIn, authLoading, login, registerUser, loadWardrobe, logout,
       language, setLanguage, t, bankInfo, updateBankInfo,
       wardrobeList, addWardrobeItem, deleteWardrobeItem, scanHistory, addScanHistory, deleteScanHistory,
       lastScanResultId, setLastScanResultId

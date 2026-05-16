@@ -11,8 +11,13 @@ export function useColorAnalysis() {
     setError(null);
     try {
       const formData = new FormData();
-      formData.append('image', imageFile);
-      if (measurements) formData.append('measurements', JSON.stringify(measurements));
+      formData.append('photo', imageFile);
+      if (measurements) {
+        const { bust, waist, hips } = measurements;
+        if (bust)  formData.append('bust',  String(bust));
+        if (waist) formData.append('waist', String(waist));
+        if (hips)  formData.append('hips',  String(hips));
+      }
       const res = await analyzeFace(formData);
       setResult(res.data.data);
       return res.data;

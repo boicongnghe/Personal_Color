@@ -9,6 +9,7 @@ import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "../context/AppContext";
 import { COLOR_TYPES } from "../data/colorTypes";
+import { useColorAnalysis } from "../../hooks/useColorAnalysis";
 
 /** Trạng thái luồng camera */
 type CameraMode = "idle" | "requesting" | "denied" | "live" | "captured";
@@ -16,6 +17,7 @@ type CameraMode = "idle" | "requesting" | "denied" | "live" | "captured";
 export function FaceScan() {
   const navigate = useNavigate();
   const { t, addScanHistory, scanHistory, user, setLastScanResultId } = useAppContext();
+  const { analyze } = useColorAnalysis();
 
   const [cameraMode, setCameraMode] = useState<CameraMode>("idle");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -27,6 +29,7 @@ export function FaceScan() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const capturedFileRef = useRef<File | null>(null);
 
   /* ── Lock logic ─────────────────────────────────────────────────── */
   const isLocked    = !user.isPremium && scanHistory.length >= 1;
@@ -98,6 +101,12 @@ export function FaceScan() {
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
     setCapturedImage(dataUrl);
     setCameraMode("captured");
+
+    // Save as File for API upload
+    canvas.toBlob((blob) => {
+      if (blob) capturedFileRef.current = new File([blob], "photo.jpg", { type: "image/jpeg" });
+    }, "image/jpeg", 0.92);
+
     stopStream();
   };
 
@@ -112,6 +121,7 @@ export function FaceScan() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    capturedFileRef.current = file;
     stopStream();
     setCapturedImage(URL.createObjectURL(file));
     setCameraMode("captured");
@@ -123,19 +133,36 @@ export function FaceScan() {
     startAnalyze();
   };
 
-  const startAnalyze = () => {
+  const startAnalyze = async () => {
+    if (!capturedFileRef.current) {
+      alert("Vui lòng chụp ảnh hoặc tải ảnh lên trước");
+      return;
+    }
     setScanning(true);
-    const result = pickColorType();
-    setTimeout(() => {
+    try {
+      const res = await analyze(capturedFileRef.current, null);
+      const apiSeason = (res.data?.season || "") as string;
+      // Backend: "autumn-warm" → frontend id: "warm-autumn"
+      const colorTypeId = apiSeason.split("-").reverse().join("-");
+      const colorType = COLOR_TYPES.find((ct) => ct.id === colorTypeId) || COLOR_TYPES[0];
       addScanHistory({
         date:        new Date().toLocaleDateString("vi-VN"),
-        colorType:   result.nameVi,
-        colorTypeId: result.id,
-        image:       capturedImage ?? result.sampleImage,
+        colorType:   colorType.nameVi,
+        colorTypeId: colorType.id,
+        image:       capturedImage ?? colorType.sampleImage,
       });
-      setLastScanResultId(result.id);
+      setLastScanResultId(colorType.id);
       navigate("/analysis-result");
-    }, 3200);
+    } catch (err: unknown) {
+      setScanning(false);
+      const errMsg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error || "";
+      if (errMsg.toLowerCase().includes("limit") || errMsg.includes("SCAN_LIMIT")) {
+        setShowPaywall(true);
+      } else {
+        alert(errMsg || "Phân tích thất bại. Vui lòng thử lại.");
+      }
+    }
   };
 
   /* ═══════════════════════════════════════════════════════════════ */

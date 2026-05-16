@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, Shirt, Filter, Trash2, Sparkles, Crown, Lock,
   Zap, Star, CheckCircle2, Palette, Wand2,
@@ -35,11 +35,15 @@ const PREMIUM_FEATURES = [
 
 export function Wardrobe() {
   const navigate = useNavigate();
-  const { wardrobeList, deleteWardrobeItem, t, user } = useAppContext();
+  const { wardrobeList, deleteWardrobeItem, t, user, loadWardrobe } = useAppContext();
   const [activeCategory, setActiveCategory] = useState("Tất cả");
   const [showPaywall, setShowPaywall] = useState(false);
 
   const isPremium = user.isPremium;
+
+  useEffect(() => {
+    if (isPremium) loadWardrobe();
+  }, [isPremium]);
 
   const filtered = activeCategory === "Tất cả"
     ? wardrobeList

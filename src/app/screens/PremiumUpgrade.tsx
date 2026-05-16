@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { createUpgradePayment } from "../../api/api";
 
 const PLANS = [
   {
@@ -70,6 +71,20 @@ export function PremiumUpgrade() {
   const [showQR, setShowQR] = useState(false);
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan)!;
+
+  const handleUpgradeClick = async () => {
+    try {
+      const res = await createUpgradePayment();
+      const paymentUrl = res.data?.data?.paymentUrl;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        setShowQR(true);
+      }
+    } catch {
+      setShowQR(true);
+    }
+  };
 
   const handlePaymentComplete = () => {
     updateUser({ isPremium: true });
@@ -156,7 +171,7 @@ export function PremiumUpgrade() {
       <div className="px-6 mb-8">
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={() => setShowQR(true)}
+          onClick={handleUpgradeClick}
           className="w-full py-4 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-shadow flex items-center justify-center gap-2"
         >
           <Zap className="w-5 h-5" />

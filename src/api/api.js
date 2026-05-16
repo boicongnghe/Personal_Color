@@ -33,7 +33,7 @@ export const getOutfitSuggestions = (season, occasion) =>
 
 export const addWardrobeItem = (data) => api.post('/api/wardrobe', data);
 
-export const getWardrobe = (userId) => api.get(`/api/wardrobe/${userId}`);
+export const getWardrobe = () => api.get('/api/wardrobe');
 
 export const deleteWardrobeItem = (itemId) => api.delete(`/api/wardrobe/${itemId}`);
 
@@ -45,7 +45,7 @@ export const login = (email, password) =>
 
 export const getMe = () => api.get('/api/auth/me');
 
-export const getSubscription = (userId) => api.get(`/api/subscription/${userId}`);
+export const getSubscription = () => api.get('/api/subscription');
 
 export const createUpgradePayment = () => api.post('/api/subscription/upgrade');
 

@@ -1,12 +1,20 @@
+const seasonalPalettes = require('../../../shared/seasonalPalettes');
+
 const AFF_ID = process.env.TIKTOK_AFF_ID;
 
-async function getAffiliateLinks(keywords) {
-  // TODO: call TikTok Shop Affiliate API with keywords
-  return keywords.map((kw) => ({
+function getTikTokLinks(season, occasion) {
+  const pal = seasonalPalettes[season];
+  const keywords =
+    pal?.outfitKeywords?.[occasion] ??
+    pal?.outfitKeywords?.casual ??
+    ['trang phục thanh lịch', 'phối đồ cơ bản', 'outfit đơn giản'];
+
+  return keywords.map(kw => ({
     platform: 'tiktok',
     name: kw,
-    url: `https://www.tiktok.com/search?q=${encodeURIComponent(kw)}&aff_id=${AFF_ID}`,
+    url: `https://www.tiktok.com/search?q=${encodeURIComponent(kw)}${AFF_ID ? `&ttaf_id=${AFF_ID}` : ''}`,
+    category: 'outfit',
   }));
 }
 
-module.exports = { getAffiliateLinks };
+module.exports = { getTikTokLinks };

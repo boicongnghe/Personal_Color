@@ -12,24 +12,21 @@ export function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
-    setTimeout(() => {
-      const result = login(email, password);
-      setLoading(false);
-      if (!result.success) {
-        setError(result.message);
-        return;
-      }
-      if (result.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/home");
-      }
-    }, 600);
+    const result = await login(email, password);
+    setLoading(false);
+    if (!result.success) {
+      setError(result.message);
+      return;
+    }
+    if (result.role === "admin") {
+      navigate("/admin");
+    } else {
+      navigate("/home");
+    }
   };
 
   return (
