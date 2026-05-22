@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { Home, Camera, Shirt, User } from "lucide-react";
+import { Home, Camera, Shirt, User, Settings } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 
 interface BottomNavProps {
@@ -8,7 +8,7 @@ interface BottomNavProps {
 
 export function BottomNav({ active }: BottomNavProps) {
   const navigate = useNavigate();
-  const { t } = useAppContext();
+  const { t, user } = useAppContext();
 
   const navItems = [
     { id: "home",     icon: Home,   label: t("navHome"),     path: "/home" },
@@ -51,6 +51,19 @@ export function BottomNav({ active }: BottomNavProps) {
             </button>
           );
         })}
+        {user.role === "admin" && (
+          <button
+            onClick={() => navigate("/admin")}
+            className="flex flex-col items-center gap-1 min-w-[60px]"
+          >
+            <div className="p-2.5 rounded-2xl transition-all duration-200 bg-transparent">
+              <Settings className="w-6 h-6 transition-colors text-purple-500" />
+            </div>
+            <span className="text-xs font-semibold transition-colors text-purple-500">
+              Admin
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

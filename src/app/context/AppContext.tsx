@@ -3,12 +3,31 @@ import {
   login as apiLogin,
   register as apiRegister,
   getMe,
+  getScanHistory as apiGetScanHistory,
+  deleteScan as apiDeleteScan,
   getWardrobe as apiGetWardrobe,
   deleteWardrobeItem as apiDeleteWardrobeItem,
+  saveBodyProfile as apiSaveBodyProfile,
+  getBodyProfile as apiGetBodyProfile,
 } from "../../api/api";
+import { COLOR_TYPES } from "../data/colorTypes";
 
 export type Language = "en" | "vi";
 export type UserRole = "user" | "admin";
+
+export type BodyProfile = {
+  gender: 'female' | 'male';
+  height?: number;
+  weight?: number;
+  bust?: number;
+  waist?: number;
+  hips?: number;
+  bodyType?: string;
+  age?: number;
+  bodyShape?: string;
+  budget?: string;
+  updatedAt?: string;
+};
 
 export type User = {
   name: string;
@@ -26,6 +45,7 @@ export type User = {
     bodyShape: string;
     budget: string;
   };
+  bodyProfile?: BodyProfile;
 };
 
 export type WardrobeItem = {
@@ -58,6 +78,7 @@ type AppContextType = {
   isLoggedIn: boolean;
   authLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; role: UserRole | null; message: string }>;
+  loginWithToken: (token: string) => Promise<{ success: boolean }>;
   registerUser: (email: string, password: string, displayName: string) => Promise<{ success: boolean; message: string }>;
   loadWardrobe: () => Promise<void>;
   logout: () => void;
@@ -72,8 +93,12 @@ type AppContextType = {
   scanHistory: ScanHistoryItem[];
   addScanHistory: (scan: Omit<ScanHistoryItem, "id">) => void;
   deleteScanHistory: (id: string) => void;
+  loadScanHistory: () => Promise<void>;
+  favoriteOutfitIds: Set<number>;
+  toggleFavoriteOutfit: (id: number) => void;
   lastScanResultId: string | null;
   setLastScanResultId: (id: string | null) => void;
+  saveBodyProfile: (data: { gender: 'female' | 'male'; height?: number; weight?: number; bust?: number; waist?: number; hips?: number; age?: string | number; bodyShape?: string; budget?: string }) => Promise<{ success: boolean; bodyType?: string; label?: string; emoji?: string; description?: string; characteristics?: string[]; tips?: string }>;
 };
 
 const translations = {
@@ -90,7 +115,7 @@ const translations = {
     premium: "Premium",
     freePlan: "Free Plan",
     colorType: "Your Color Type",
-    savedOutfits: "Saved Outfits",
+    savedOutfits: "Favorites",
     wardrobeItems: "Wardrobe Items",
     upgradePremium: "Upgrade to Premium",
     myColorAnalysis: "My Color Analysis",
@@ -294,7 +319,7 @@ const translations = {
     premium: "Cao cấp",
     freePlan: "Gói cơ bản",
     colorType: "Kiểu màu của bạn",
-    savedOutfits: "Trang phục đã lưu",
+    savedOutfits: "Yêu thích",
     wardrobeItems: "Món đồ tủ đồ",
     upgradePremium: "Nâng cấp Premium",
     myColorAnalysis: "Phân tích màu sắc",
@@ -502,6 +527,7 @@ const defaultContextValue: AppContextType = {
   isLoggedIn: false,
   authLoading: true,
   login: () => Promise.resolve({ success: false, role: null, message: "" }),
+  loginWithToken: () => Promise.resolve({ success: false }),
   registerUser: () => Promise.resolve({ success: false, message: "" }),
   loadWardrobe: () => Promise.resolve(),
   logout: () => {},
@@ -521,8 +547,12 @@ const defaultContextValue: AppContextType = {
   scanHistory: [],
   addScanHistory: () => {},
   deleteScanHistory: () => {},
+  loadScanHistory: () => Promise.resolve(),
+  favoriteOutfitIds: new Set(),
+  toggleFavoriteOutfit: () => {},
   lastScanResultId: null,
   setLastScanResultId: () => {},
+  saveBodyProfile: () => Promise.resolve({ success: false }),
 };
 
 const AppContext = createContext<AppContextType>(defaultContextValue);
@@ -551,112 +581,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     role: "user",
   });
 
-  const [wardrobeList, setWardrobeList] = useState<WardrobeItem[]>([
-    {
-      id: 1,
-      name: "Áo blazer olive",
-      category: "Áo",
-      match: 95,
-      occasions: ["Công sở", "Dự tiệc"],
-      image: "https://images.unsplash.com/photo-1641943632479-3798ef1e14c6?w=400",
-    },
-    {
-      id: 2,
-      name: "Váy tông màu đất",
-      category: "Váy",
-      match: 98,
-      occasions: ["Dự tiệc", "Kỳ nghỉ"],
-      image: "https://images.unsplash.com/photo-1764265148862-7ee72a4fb367?w=400",
-    },
-    {
-      id: 3,
-      name: "Áo len caramel",
-      category: "Áo",
-      match: 92,
-      occasions: ["Thường ngày", "Đi học"],
-      image: "https://images.unsplash.com/photo-1731404617461-e0eeeeefcf7b?w=400",
-    },
-    {
-      id: 4,
-      name: "Áo sơ mi beige",
-      category: "Áo",
-      match: 90,
-      occasions: ["Thường ngày", "Công sở"],
-      image: "https://images.unsplash.com/photo-1744135995007-f1dde493d241?w=400",
-    },
-    {
-      id: 5,
-      name: "Áo croptop coral",
-      category: "Áo",
-      match: 93,
-      occasions: ["Hẹn hò", "Dự tiệc"],
-      image: "https://images.unsplash.com/photo-1768077002909-a2ac2d71d650?w=400",
-    },
-    {
-      id: 6,
-      name: "Blouse terracotta",
-      category: "Áo",
-      match: 96,
-      occasions: ["Thường ngày", "Hẹn hò"],
-      image: "https://images.unsplash.com/photo-1759992878512-ec8f958b13e7?w=400",
-    },
-    {
-      id: 7,
-      name: "Quần wide-leg trắng sữa",
-      category: "Quần",
-      match: 88,
-      occasions: ["Công sở", "Thường ngày"],
-      image: "https://images.unsplash.com/photo-1559658565-c3d776872a20?w=400",
-    },
-    {
-      id: 8,
-      name: "Quần jeans đen skinny",
-      category: "Quần",
-      match: 85,
-      occasions: ["Thường ngày", "Hẹn hò"],
-      image: "https://images.unsplash.com/photo-1562121594-70a275d4b5e1?w=400",
-    },
-    {
-      id: 9,
-      name: "Quần culottes nâu",
-      category: "Quần",
-      match: 91,
-      occasions: ["Công sở", "Dự tiệc"],
-      image: "https://images.unsplash.com/photo-1666513241353-14a198830381?w=400",
-    },
-    {
-      id: 10,
-      name: "Váy midi đỏ gạch",
-      category: "Váy",
-      match: 94,
-      occasions: ["Dự tiệc", "Hẹn hò"],
-      image: "https://images.unsplash.com/photo-1508829298730-713792c22189?w=400",
-    },
-    {
-      id: 11,
-      name: "Chân váy olive xòe",
-      category: "Váy",
-      match: 97,
-      occasions: ["Thường ngày", "Hẹn hò"],
-      image: "https://images.unsplash.com/photo-1568467020752-b08fbd48e878?w=400",
-    },
-    {
-      id: 12,
-      name: "Áo khoác vàng mustard",
-      category: "Áo khoác",
-      match: 89,
-      occasions: ["Thường ngày", "Kỳ nghỉ"],
-      image: "https://images.unsplash.com/photo-1582930177321-5e1fd7d6cbe2?w=400",
-    },
-    {
-      id: 13,
-      name: "Áo khoác camel dài",
-      category: "Áo khoác",
-      match: 96,
-      occasions: ["Công sở", "Kỳ nghỉ"],
-      image: "https://images.unsplash.com/photo-1705920821948-705ae2e61fc0?w=400",
-    },
-  ]);
+  const [wardrobeList, setWardrobeList] = useState<WardrobeItem[]>([]);
 
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
 
@@ -678,6 +603,53 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteScanHistory = (id: string) => {
     setScanHistory((prev: ScanHistoryItem[]) => prev.filter((item: ScanHistoryItem) => item.id !== id));
+    apiDeleteScan(id).catch(() => {});
+  };
+
+  const [favoriteOutfitIds, setFavoriteOutfitIds] = useState<Set<number>>(new Set());
+
+  const toggleFavoriteOutfit = (id: number) => {
+    setFavoriteOutfitIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const saveBodyProfile = async (data: { gender: 'female' | 'male'; height?: number; weight?: number; bust?: number; waist?: number; hips?: number; age?: string | number; bodyShape?: string; budget?: string }): Promise<{ success: boolean; bodyType?: string; label?: string; emoji?: string; description?: string; characteristics?: string[]; tips?: string }> => {
+    try {
+      const res = await apiSaveBodyProfile(data);
+      const { bodyProfile, bodyType, label, emoji, description, characteristics, tips } = res.data.data;
+      setUser((prev: User) => ({ ...prev, bodyProfile }));
+      return { success: true, bodyType, label, emoji, description, characteristics, tips };
+    } catch {
+      return { success: false };
+    }
+  };
+
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  const buildScanItems = (apiScans: Array<{ _id: string; season: string; scanDate: string; photoUrl?: string }>): ScanHistoryItem[] =>
+    apiScans.map((scan) => {
+      const colorTypeId = scan.season.split("-").reverse().join("-");
+      const ct = COLOR_TYPES.find((c) => c.id === colorTypeId) || COLOR_TYPES[0];
+      return {
+        id: scan._id,
+        date: new Date(scan.scanDate).toLocaleDateString("vi-VN"),
+        colorType: ct.nameVi,
+        colorTypeId: ct.id,
+        image: scan.photoUrl ? `${API_BASE}${scan.photoUrl}` : ct.sampleImage,
+      };
+    });
+
+  const loadScanHistory = async (): Promise<void> => {
+    try {
+      const res = await apiGetScanHistory();
+      const apiScans = res.data.data?.scans || [];
+      setScanHistory(buildScanItems(apiScans));
+    } catch {
+      // silent — keep existing list
+    }
   };
 
   const [bankInfo, setBankInfo] = useState<BankInfo>({
@@ -713,9 +685,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           ...prev,
           name: u.displayName || u.email,
           email: u.email,
-          role: "user" as UserRole,
+          role: (u as any).isAdmin ? "admin" as UserRole : "user" as UserRole,
           isPremium: u.subscriptionTier === "premium",
+          bodyProfile: (u as any).bodyProfile ?? prev.bodyProfile,
         }));
+        // Load persisted data after successful auth
+        apiGetScanHistory()
+          .then((r) => setScanHistory(buildScanItems(r.data.data?.scans || [])))
+          .catch(() => {});
+        apiGetWardrobe()
+          .then((r) => {
+            const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; imageUrl?: string }> =
+              r.data.data?.items || [];
+            setWardrobeList(apiItems.map((item) => ({
+              id: item._id,
+              name: item.name,
+              category: CATEGORY_MAP[item.category] || item.category,
+              match: 90,
+              occasions: item.seasons?.length
+                ? [item.seasons[0].split("-")[0] === "spring" || item.seasons[0].split("-")[0] === "summer" ? "Thường ngày" : "Công sở"]
+                : ["Thường ngày"],
+              image: item.imageUrl || FALLBACK_IMAGE,
+            })));
+          })
+          .catch(() => {});
+        apiGetBodyProfile()
+          .then((r) => {
+            const bp = r.data.data?.bodyProfile;
+            if (bp) setUser((prev: User) => ({ ...prev, bodyProfile: bp }));
+          })
+          .catch(() => {});
       })
       .catch(() => {
         localStorage.removeItem("clarity_token");
@@ -724,6 +723,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setAuthLoading(false);
       });
   }, []);
+
+  const loginWithToken = async (token: string): Promise<{ success: boolean }> => {
+    try {
+      localStorage.setItem("clarity_token", token);
+      const res = await getMe();
+      const u = res.data.data;
+      setIsLoggedIn(true);
+      setUser((prev: User) => ({
+        ...prev,
+        name: u.displayName || u.email,
+        email: u.email,
+        role: (u as any).isAdmin ? "admin" as UserRole : "user" as UserRole,
+        isPremium: u.subscriptionTier === "premium",
+        bodyProfile: (u as any).bodyProfile ?? prev.bodyProfile,
+      }));
+      return { success: true };
+    } catch {
+      localStorage.removeItem("clarity_token");
+      return { success: false };
+    }
+  };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; role: UserRole | null; message: string }> => {
     try {
@@ -735,10 +755,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         ...prev,
         name: u.displayName || u.email,
         email: u.email,
-        role: "user" as UserRole,
+        role: (u as any).isAdmin ? "admin" as UserRole : "user" as UserRole,
         isPremium: u.subscriptionTier === "premium",
       }));
-      return { success: true, role: "user" as UserRole, message: "Đăng nhập thành công" };
+      // Load body profile in background so RequireProfile gate works immediately
+      apiGetBodyProfile()
+        .then((r) => {
+          const bp = r.data.data?.bodyProfile;
+          if (bp) setUser((prev: User) => ({ ...prev, bodyProfile: bp }));
+        })
+        .catch(() => {});
+      const role: UserRole = (u as any).isAdmin ? "admin" : "user";
+      return { success: true, role, message: "Đăng nhập thành công" };
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
@@ -810,10 +838,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AppContext.Provider value={{
-      user, updateUser, isLoggedIn, authLoading, login, registerUser, loadWardrobe, logout,
+      user, updateUser, isLoggedIn, authLoading, login, loginWithToken, registerUser, loadWardrobe, logout,
       language, setLanguage, t, bankInfo, updateBankInfo,
-      wardrobeList, addWardrobeItem, deleteWardrobeItem, scanHistory, addScanHistory, deleteScanHistory,
-      lastScanResultId, setLastScanResultId
+      wardrobeList, addWardrobeItem, deleteWardrobeItem, scanHistory, addScanHistory, deleteScanHistory, loadScanHistory,
+      favoriteOutfitIds, toggleFavoriteOutfit,
+      lastScanResultId, setLastScanResultId,
+      saveBodyProfile
     }}>
       {children}
     </AppContext.Provider>

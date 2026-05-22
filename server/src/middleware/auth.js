@@ -11,6 +11,7 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select('-passwordHash');
     if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    if (user.isBanned) return res.status(403).json({ success: false, error: 'Tài khoản đã bị khóa' });
     req.user = user;
     req.userId = user._id;
     next();

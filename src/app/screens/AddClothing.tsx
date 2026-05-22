@@ -1,33 +1,89 @@
 import { useNavigate } from "react-router";
-import { ArrowLeft, Camera, FolderOpen, Sparkles, RefreshCw, CheckCircle2, Tag } from "lucide-react";
-import { useState, useRef } from "react";
+import { toast } from "sonner";
+import { ArrowLeft, Camera, FolderOpen, Sparkles, RefreshCw, CheckCircle2, Tag, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "../context/AppContext";
+import { addWardrobeItem as addWardrobeItemApi } from "../../api/api";
 
 const CATEGORIES = ["Áo", "Quần", "Váy", "Áo khoác", "Phụ kiện", "Giày dép"];
 const OCCASIONS  = ["Thường ngày", "Công sở", "Dự tiệc", "Kỳ nghỉ", "Hẹn hò", "Thể thao"];
 
 export function AddClothing() {
   const navigate = useNavigate();
-  const { t, addWardrobeItem } = useAppContext();
+  const { t, loadWardrobe } = useAppContext();
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile,  setSelectedFile]  = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [itemName, setItemName] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef    = useRef<HTMLVideoElement>(null);
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const streamRef   = useRef<MediaStream | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  /* cleanup stream on unmount */
+  useEffect(() => {
+    return () => { streamRef.current?.getTracks().forEach(t => t.stop()); };
+  }, []);
+
+  /* wire stream to video element once overlay is visible */
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraOpen]);
 
   /* ── File picker ── */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setSelectedFile(file);
     setSelectedImage(URL.createObjectURL(file));
+  };
+
+  /* ── Camera (getUserMedia) ── */
+  const handleOpenCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 1280 } },
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+    } catch {
+      alert("Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập camera trong trình duyệt.");
+    }
+  };
+
+  const handleCloseCamera = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+  };
+
+  const handleCapture = () => {
+    const video  = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" });
+      setSelectedFile(file);
+      setSelectedImage(URL.createObjectURL(blob));
+      handleCloseCamera();
+    }, "image/jpeg", 0.92);
   };
 
   const handleReset = () => {
     setSelectedImage(null);
+    setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -38,21 +94,28 @@ export function AddClothing() {
   };
 
   /* ── Add to wardrobe ── */
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedImage) return;
     setAnalyzing(true);
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      formData.append('name', itemName || 'Trang phục mới');
+      formData.append('category', selectedCategory || 'Áo');
+      if (selectedFile) formData.append('photo', selectedFile);
+      await addWardrobeItemApi(formData);
+      await loadWardrobe();
       setAnalyzing(false);
-      addWardrobeItem({
-        name: itemName || "Trang phục mới",
-        category: selectedCategory || "Áo",
-        match: Math.floor(Math.random() * 10) + 88,
-        occasions: selectedOccasions.length > 0 ? selectedOccasions : ["Thường ngày"],
-        image: selectedImage,
-      });
-      alert(t("addedToWardrobe"));
+      toast.success("Đã thêm vào tủ đồ!", { description: itemName || "Trang phục mới" });
       navigate("/wardrobe");
-    }, 2200);
+    } catch (err: unknown) {
+      setAnalyzing(false);
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 403) {
+        toast.error("Yêu cầu Premium", { description: "Nâng cấp để sử dụng tính năng tủ đồ." });
+      } else {
+        toast.error("Thêm thất bại", { description: "Vui lòng thử lại." });
+      }
+    }
   };
 
   /* ── Analyzing overlay ── */
@@ -82,7 +145,7 @@ export function AddClothing() {
 
   return (
     <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-12">
-      {/* Hidden file input */}
+      {/* Hidden file input (gallery only) */}
       <input
         ref={fileInputRef}
         type="file"
@@ -90,6 +153,56 @@ export function AddClothing() {
         className="hidden"
         onChange={handleFileChange}
       />
+
+      {/* Hidden canvas for frame capture */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* ── Camera overlay ── */}
+      <AnimatePresence>
+        {cameraOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black flex flex-col"
+          >
+            {/* Top bar */}
+            <div className="flex items-center justify-between px-4 py-4 pt-10">
+              <button onClick={handleCloseCamera} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                <X className="w-5 h-5 text-white" />
+              </button>
+              <span className="text-white font-semibold text-sm">Chụp trang phục</span>
+              <div className="w-10" />
+            </div>
+
+            {/* Video preview */}
+            <div className="flex-1 relative overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              {/* Guide overlay */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-64 h-64 border-2 border-white/60 rounded-2xl" />
+              </div>
+            </div>
+
+            {/* Capture button */}
+            <div className="flex justify-center py-8">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleCapture}
+                className="w-20 h-20 rounded-full bg-white border-4 border-white/50 shadow-2xl flex items-center justify-center"
+              >
+                <Camera className="w-8 h-8 text-gray-800" />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="px-6 pt-12 pb-6">
         <button
@@ -160,13 +273,7 @@ export function AddClothing() {
             Chọn từ máy
           </button>
           <button
-            onClick={() => {
-              // Simulate camera: use file picker with camera capture on mobile
-              if (fileInputRef.current) {
-                fileInputRef.current.setAttribute("capture", "environment");
-                fileInputRef.current.click();
-              }
-            }}
+            onClick={handleOpenCamera}
             className="py-3.5 bg-white text-purple-600 rounded-2xl font-semibold border-2 border-purple-300 hover:bg-purple-50 transition-colors flex items-center justify-center gap-2"
           >
             <Camera className="w-5 h-5" />

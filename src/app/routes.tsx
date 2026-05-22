@@ -17,12 +17,15 @@ import { StyleOthers } from "./screens/StyleOthers";
 import { AdminDashboard } from "./screens/admin/AdminDashboard";
 import { AdminUsers } from "./screens/admin/AdminUsers";
 import { AdminRevenue } from "./screens/admin/AdminRevenue";
+import { AdminProducts } from "./screens/admin/AdminProducts";
 import { Settings } from "./screens/Settings";
 import { Privacy } from "./screens/Privacy";
 import { ScanHistory } from "./screens/ScanHistory";
 import { AddClothing } from "./screens/AddClothing";
+import { AuthCallback } from "./screens/AuthCallback";
 import { AdminGuard } from "./components/AdminGuard";
 import { RequireAuth } from "./components/RequireAuth";
+import { RequireProfile } from "./components/RequireProfile";
 
 export const router = createBrowserRouter([
   {
@@ -34,14 +37,21 @@ export const router = createBrowserRouter([
       { path: "login", Component: Login },
       { path: "signup", Component: Signup },
       { path: "forgot-password", Component: ForgotPassword },
+      { path: "auth/callback", Component: AuthCallback },
       // ── Protected routes (require login) ──
       {
         Component: RequireAuth,
         children: [
           { path: "home", Component: Home },
-          { path: "scan", Component: FaceScan },
           { path: "analysis-result", Component: AnalysisResult },
-          { path: "outfits", Component: OutfitRecommendations },
+          // Routes that require AI personalization (gender + body profile)
+          {
+            Component: RequireProfile,
+            children: [
+              { path: "scan", Component: FaceScan },
+              { path: "outfits", Component: OutfitRecommendations },
+            ],
+          },
           { path: "wardrobe", Component: Wardrobe },
           { path: "profile", Component: Profile },
           { path: "premium", Component: PremiumUpgrade },
@@ -62,6 +72,7 @@ export const router = createBrowserRouter([
           { path: "admin", Component: AdminDashboard },
           { path: "admin/users", Component: AdminUsers },
           { path: "admin/revenue", Component: AdminRevenue },
+          { path: "admin/products", Component: AdminProducts },
         ],
       },
     ],

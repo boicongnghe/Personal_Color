@@ -41,17 +41,26 @@ const getWardrobe = async (req, res, next) => {
   }
 };
 
+const VI_CATEGORY_MAP = {
+  'Áo': 'top', 'Quần': 'bottom', 'Váy': 'bottom',
+  'Áo khoác': 'top', 'Phụ kiện': 'accessory', 'Giày dép': 'shoes',
+};
+
 const addItem = async (req, res, next) => {
   try {
-    const { name, color, category, imageUrl } = req.body;
+    const { name, imageUrl } = req.body;
+    const color    = (req.body.color && HEX_RE.test(req.body.color)) ? req.body.color : '#808080';
+    const category = VI_CATEGORY_MAP[req.body.category] || (VALID_CATEGORIES.includes(req.body.category) ? req.body.category : 'top');
+
     if (!name) return res.status(400).json({ success: false, error: 'name là bắt buộc' });
-    if (!color || !HEX_RE.test(color))
-      return res.status(400).json({ success: false, error: 'color phải là mã hex hợp lệ (#xxxxxx)' });
-    if (!VALID_CATEGORIES.includes(category))
-      return res.status(400).json({ success: false, error: `category phải là một trong: ${VALID_CATEGORIES.join(', ')}` });
+
+    const BASE_URL = process.env.SERVER_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+    const resolvedImageUrl = req.file
+      ? `${BASE_URL}/uploads/wardrobe/${req.file.filename}`
+      : (imageUrl || undefined);
 
     const seasons = tagSeasons(color);
-    const newItem = { name, color, category, seasons, ...(imageUrl ? { imageUrl } : {}) };
+    const newItem = { name, color, category, seasons, ...(resolvedImageUrl ? { imageUrl: resolvedImageUrl } : {}) };
 
     const wardrobe = await Wardrobe.findOneAndUpdate(
       { userId: req.user._id },

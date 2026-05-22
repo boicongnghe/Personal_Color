@@ -7,6 +7,8 @@ const itemSchema = new mongoose.Schema({
   imageUrl: String,
   addedAt: { type: Date, default: Date.now },
   seasons: [String],
+  clothingPhotoBuffer: Buffer,
+  clothingPhotoMime:   String,
 });
 
 const wardrobeSchema = new mongoose.Schema({

@@ -13,8 +13,10 @@
     "license": "ISC",
     "type": "commonjs",
     "dependencies": {
+        "@google/generative-ai": "^0.24.1",
         "axios": "^1.16.1",
         "bcryptjs": "^3.0.3",
+        "cheerio": "^1.2.0",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
         "express": "^5.2.1",
@@ -24,7 +26,11 @@
         "jsonwebtoken": "^9.0.3",
         "mongoose": "^9.6.2",
         "morgan": "^1.10.1",
-        "multer": "^2.1.1"
+        "multer": "^2.1.1",
+        "node-fetch": "^2.7.0",
+        "passport": "^0.7.0",
+        "passport-facebook": "^3.0.0",
+        "passport-google-oauth20": "^2.0.0"
     },
     "devDependencies": {
         "nodemon": "^3.1.14"

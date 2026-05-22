@@ -4,8 +4,8 @@ const User = require('../models/User');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const signToken = (userId) =>
-  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+const signToken = (user) =>
+  jwt.sign({ userId: user._id, isAdmin: user.isAdmin ?? false }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 const register = async (req, res, next) => {
   try {
@@ -22,7 +22,7 @@ const register = async (req, res, next) => {
     }
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, passwordHash, displayName });
-    const token = signToken(user._id);
+    const token = signToken(user);
     res.status(201).json({
       success: true,
       data: {
@@ -48,10 +48,10 @@ const login = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Email và mật khẩu là bắt buộc' });
     }
     const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({ success: false, error: 'Email hoặc mật khẩu không đúng' });
     }
-    const token = signToken(user._id);
+    const token = signToken(user);
     res.json({
       success: true,
       data: {
@@ -62,6 +62,7 @@ const login = async (req, res, next) => {
           displayName: user.displayName,
           subscriptionTier: user.subscriptionTier,
           scanCount: user.scanCount,
+          isAdmin: user.isAdmin ?? false,
         },
       },
     });
@@ -71,8 +72,20 @@ const login = async (req, res, next) => {
 };
 
 const getMe = (req, res) => {
-  const { _id, email, displayName, avatarUrl, subscriptionTier, scanCount, lastScanDate } = req.user;
-  res.json({ success: true, data: { _id, email, displayName, avatarUrl, subscriptionTier, scanCount, lastScanDate } });
+  const u = req.user;
+  const bp = u.bodyProfile;
+  const bodyProfile = bp?.gender
+    ? { gender: bp.gender, height: bp.height, weight: bp.weight, bust: bp.bust, waist: bp.waist, hips: bp.hips, bodyType: bp.bodyType, updatedAt: bp.updatedAt }
+    : null;
+  res.json({
+    success: true,
+    data: {
+      _id: u._id, email: u.email, displayName: u.displayName,
+      avatarUrl: u.avatarUrl, subscriptionTier: u.subscriptionTier,
+      scanCount: u.scanCount, lastScanDate: u.lastScanDate,
+      isAdmin: u.isAdmin ?? false, bodyProfile,
+    },
+  });
 };
 
 module.exports = { register, login, getMe };

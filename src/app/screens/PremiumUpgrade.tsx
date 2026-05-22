@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
-import { createUpgradePayment } from "../../api/api";
+import { createUpgradePayment, confirmPayment as apiConfirmPayment } from "../../api/api";
 
 const PLANS = [
   {
@@ -64,33 +64,58 @@ const BENEFITS = [
   "Mẹo thời trang độc quyền",
 ];
 
+type QRData = {
+  qrUrl: string;
+  plan: string;
+  amount: number;
+  duration: number;
+  label: string;
+  bankName: string;
+  accountNumber: string;
+  accountOwner: string;
+  transferNote: string;
+  orderId: string;
+};
+
 export function PremiumUpgrade() {
   const navigate = useNavigate();
-  const { t, bankInfo, updateUser } = useAppContext();
+  const { t, updateUser } = useAppContext();
   const [selectedPlan, setSelectedPlan] = useState("3m");
   const [showQR, setShowQR] = useState(false);
+  const [qrData, setQrData] = useState<QRData | null>(null);
+  const [step, setStep] = useState<'plan' | 'qr' | 'confirming' | 'done'>('plan');
+  const [checking, setChecking] = useState(false);
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan)!;
 
   const handleUpgradeClick = async () => {
     try {
-      const res = await createUpgradePayment();
-      const paymentUrl = res.data?.data?.paymentUrl;
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-      } else {
-        setShowQR(true);
-      }
+      const res = await createUpgradePayment(selectedPlan);
+      const data = res.data?.data as QRData;
+      setQrData(data);
+      setStep('qr');
+      setShowQR(true);
     } catch {
       setShowQR(true);
     }
   };
 
-  const handlePaymentComplete = () => {
-    updateUser({ isPremium: true });
-    setShowQR(false);
-    alert(t("paymentSuccess"));
-    navigate("/premium-setup");
+  const onConfirmPaid = async () => {
+    if (!qrData) return;
+    setChecking(true);
+    setStep('confirming');
+    try {
+      await apiConfirmPayment(qrData.orderId);
+      updateUser({ isPremium: true });
+      setStep('done');
+      setShowQR(false);
+      alert(t("paymentSuccess"));
+      navigate("/premium-setup");
+    } catch {
+      setChecking(false);
+      setStep('qr');
+      alert("Chưa xác nhận được thanh toán. Vui lòng thử lại sau ít phút.");
+    }
   };
 
   return (
@@ -280,25 +305,25 @@ export function PremiumUpgrade() {
             <p className="text-gray-500 text-sm text-center">{t("paymentDesc")}</p>
 
             <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-              <img src={bankInfo.qrCodeUrl} alt="QR Code" className="w-48 h-48 object-cover rounded-xl" />
+              <img src={qrData?.qrUrl} alt="QR Code" className="w-48 h-48 object-cover rounded-xl" />
             </div>
 
             <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Ngân hàng:</span>
-                <span className="font-bold text-gray-900">{bankInfo.bankName}</span>
+                <span className="font-bold text-gray-900">{qrData?.bankName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">{t("accountHolder")}:</span>
-                <span className="font-bold text-gray-900">{bankInfo.accountName}</span>
+                <span className="font-bold text-gray-900">{qrData?.accountOwner}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">{t("bankAccount")}:</span>
-                <span className="font-bold text-gray-900">{bankInfo.accountNumber}</span>
+                <span className="font-bold text-gray-900">{qrData?.accountNumber}</span>
               </div>
               <div className="flex justify-between border-t border-gray-200 pt-2 mt-1">
                 <span className="text-gray-500">Nội dung CK:</span>
-                <span className="font-bold text-purple-600">CLARITY {activePlan.label.toUpperCase()}</span>
+                <span className="font-bold text-purple-600">{qrData?.transferNote}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Số tiền:</span>
@@ -309,10 +334,11 @@ export function PremiumUpgrade() {
 
           <DialogFooter>
             <button
-              onClick={handlePaymentComplete}
-              className="w-full py-3 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-xl font-bold hover:shadow-lg transition-shadow"
+              onClick={onConfirmPaid}
+              disabled={checking}
+              className="w-full py-3 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-xl font-bold hover:shadow-lg transition-shadow disabled:opacity-70"
             >
-              {t("confirmPayment")}
+              {step === 'confirming' ? 'Đang xác nhận...' : t("confirmPayment")}
             </button>
           </DialogFooter>
         </DialogContent>

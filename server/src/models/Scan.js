@@ -9,6 +9,7 @@ const scanSchema = new mongoose.Schema({
   bodyType: { type: String, enum: ['hourglass', 'pear', 'rectangle', 'inverted-triangle', 'apple'] },
   accuracy: Number,
   rawMetrics: mongoose.Schema.Types.Mixed,
+  photoUrl: { type: String },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Scan', scanSchema);

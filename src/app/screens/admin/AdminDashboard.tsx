@@ -8,6 +8,7 @@ import {
   Menu,
   Save,
   LogOut,
+  Package,
 } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 
@@ -268,6 +269,12 @@ export function AdminDashboard() {
               className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
             >
               <DollarSign className="w-4 h-4" /> Doanh thu
+            </button>
+            <button
+              onClick={() => navigate("/admin/products")}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition-colors border border-purple-200"
+            >
+              <Package className="w-4 h-4" /> Sản phẩm
             </button>
             <button
               onClick={() => { logout(); navigate("/login"); }}

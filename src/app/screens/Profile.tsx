@@ -9,6 +9,7 @@ import {
 import { BottomNav } from "../components/BottomNav";
 import { useAppContext } from "../context/AppContext";
 import { motion, AnimatePresence } from "motion/react";
+import MannequinSVG from "../components/MannequinSVG";
 
 /* ── Body shape data ──────────────────────────────────────────── */
 const BODY_SHAPES = [
@@ -37,7 +38,7 @@ function calcBMI(h: string, w: string) {
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user, updateUser, language, setLanguage, t } = useAppContext();
+  const { user, updateUser, language, setLanguage, t, wardrobeList, favoriteOutfitIds, saveBodyProfile, logout } = useAppContext();
   const isVi = language === "vi";
 
   const [showProfileEdit, setShowProfileEdit] = useState(false);
@@ -47,25 +48,91 @@ export function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [bodyForm, setBodyForm] = useState({
-    height:    user.preferences?.height    ?? "",
-    weight:    user.preferences?.weight    ?? "",
-    age:       user.preferences?.age       ?? "",
-    bodyShape: user.preferences?.bodyShape ?? "Hourglass",
-    budget:    user.preferences?.budget    ?? "1,000,000",
+    gender:    (user.bodyProfile?.gender ?? "female") as "female" | "male",
+    height:    user.bodyProfile?.height?.toString()  ?? "",
+    weight:    user.bodyProfile?.weight?.toString()  ?? "",
+    bust:      user.bodyProfile?.bust?.toString()    ?? "",
+    waist:     user.bodyProfile?.waist?.toString()   ?? "",
+    hips:      user.bodyProfile?.hips?.toString()    ?? "",
+    age:       user.bodyProfile?.age?.toString()     ?? "",
+    bodyShape: user.bodyProfile?.bodyShape           ?? "Hourglass",
+    budget:    user.bodyProfile?.budget              ?? "1,000,000",
   });
 
+  const [bodyResult, setBodyResult] = useState<{
+    bodyType: string; label: string; emoji: string; description: string; characteristics: string[]; tips: string;
+  } | null>(user.bodyProfile?.bodyType ? {
+    bodyType: user.bodyProfile.bodyType,
+    label: user.bodyProfile.bodyType,
+    emoji: '',
+    description: '',
+    characteristics: [],
+    tips: '',
+  } : null);
+  const [bodyLoading, setBodyLoading] = useState(false);
+
   const bmi      = calcBMI(bodyForm.height, bodyForm.weight);
-  const savedBMI = calcBMI(user.preferences?.height ?? "", user.preferences?.weight ?? "");
-  const currentShape = BODY_SHAPES.find(b => b.id === user.preferences?.bodyShape);
+  const savedBMI = calcBMI(user.bodyProfile?.height?.toString() ?? "", user.bodyProfile?.weight?.toString() ?? "");
+  const currentShape = BODY_SHAPES.find(b => b.id === user.bodyProfile?.bodyShape);
+
+  const hasBodyData = !!(user.bodyProfile?.bodyType || user.bodyProfile?.height || user.bodyProfile?.bodyShape);
 
   const handleSaveProfile = () => { updateUser({ name: editName, email: editEmail }); setShowProfileEdit(false); };
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) updateUser({ avatar: URL.createObjectURL(file) });
   };
-  const handleSaveBody = () => { updateUser({ preferences: bodyForm }); setShowBodyPanel(false); };
+
+  const handleSaveBody = async () => {
+    const { gender, height, weight, bust, waist, hips, age, bodyShape, budget } = bodyForm;
+    setBodyLoading(true);
+
+    const payload: Parameters<typeof saveBodyProfile>[0] = { gender };
+    const hasFullMeasurements = height && weight && bust && waist && hips;
+    if (hasFullMeasurements) {
+      payload.height = parseFloat(height);
+      payload.weight = parseFloat(weight);
+      payload.bust   = parseFloat(bust);
+      payload.waist  = parseFloat(waist);
+      payload.hips   = parseFloat(hips);
+    }
+    if (age)       payload.age       = age;
+    if (bodyShape) payload.bodyShape = bodyShape;
+    if (budget)    payload.budget    = budget;
+
+    const result = await saveBodyProfile(payload);
+    setBodyLoading(false);
+
+    if (result.success && result.bodyType) {
+      setBodyResult({
+        bodyType:        result.bodyType,
+        label:           result.label        ?? result.bodyType,
+        emoji:           result.emoji        ?? '',
+        description:     result.description  ?? '',
+        characteristics: result.characteristics ?? [],
+        tips:            result.tips         ?? '',
+      });
+      return; // stay in panel to show result
+    }
+    setShowBodyPanel(false);
+  };
+
   const openBodyPanel = () => {
-    setBodyForm({ height: user.preferences?.height ?? "", weight: user.preferences?.weight ?? "", age: user.preferences?.age ?? "", bodyShape: user.preferences?.bodyShape ?? "Hourglass", budget: user.preferences?.budget ?? "1,000,000" });
+    setBodyForm({
+      gender:    user.bodyProfile?.gender              ?? "female",
+      height:    user.bodyProfile?.height?.toString()  ?? "",
+      weight:    user.bodyProfile?.weight?.toString()  ?? "",
+      bust:      user.bodyProfile?.bust?.toString()    ?? "",
+      waist:     user.bodyProfile?.waist?.toString()   ?? "",
+      hips:      user.bodyProfile?.hips?.toString()    ?? "",
+      age:       user.bodyProfile?.age?.toString()     ?? "",
+      bodyShape: user.bodyProfile?.bodyShape           ?? "Hourglass",
+      budget:    user.bodyProfile?.budget              ?? "1,000,000",
+    });
+    setBodyResult(user.bodyProfile?.bodyType ? {
+      bodyType: user.bodyProfile.bodyType, label: user.bodyProfile.bodyType,
+      emoji: '', description: '', characteristics: [], tips: '',
+    } : null);
     setShowBodyPanel(true);
   };
 
@@ -80,8 +147,6 @@ export function Profile() {
     badge?: string;
     isPremiumLocked?: boolean;
   };
-
-  const hasBodyData = !!(user.preferences?.height || user.preferences?.bodyShape);
 
   const topMenu: MenuItem[] = [
     {
@@ -98,7 +163,9 @@ export function Profile() {
       icon: Sparkles,
       label: "Cá nhân hóa AI",
       description: hasBodyData
-        ? `${user.preferences?.height ?? "—"} cm · ${user.preferences?.weight ?? "—"} kg · ${currentShape ? (isVi ? currentShape.labelVi : currentShape.labelEn) : "—"}`
+        ? user.bodyProfile?.bodyType
+          ? `${user.bodyProfile.height} cm · ${user.bodyProfile.weight} kg · ${user.bodyProfile.bodyType}`
+          : `${user.bodyProfile?.height ?? "—"} cm · ${user.bodyProfile?.weight ?? "—"} kg · ${currentShape ? (isVi ? currentShape.labelVi : currentShape.labelEn) : "—"}`
         : "Thêm thông tin cơ thể để gợi ý chuẩn hơn",
       action: openBodyPanel,
       badge: hasBodyData ? "✓ Đã cập nhật" : "+ Thêm",
@@ -232,11 +299,11 @@ export function Profile() {
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-            <p className="text-3xl font-black text-gray-900 mb-0.5">{user.savedOutfits}</p>
+            <p className="text-3xl font-black text-gray-900 mb-0.5">{favoriteOutfitIds.size}</p>
             <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">{t("savedOutfits")}</p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-            <p className="text-3xl font-black text-gray-900 mb-0.5">{user.wardrobeItems}</p>
+            <p className="text-3xl font-black text-gray-900 mb-0.5">{wardrobeList.length}</p>
             <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">{t("wardrobeItems")}</p>
           </div>
         </div>
@@ -265,7 +332,7 @@ export function Profile() {
         </div>
 
         {/* Logout */}
-        <button onClick={() => navigate("/")}
+        <button onClick={() => { logout(); navigate("/"); }}
           className="w-full py-4 bg-red-50 text-red-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-colors">
           <LogOut className="w-5 h-5" />
           {t("logout")}
@@ -364,14 +431,68 @@ export function Profile() {
               {/* Scrollable */}
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
 
-                {/* Số đo */}
+                {/* Body type result — shown after successful classification */}
+                <AnimatePresence>
+                  {bodyResult && bodyResult.bodyType && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-4"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <MannequinSVG
+                          gender={bodyForm.gender}
+                          bodyType={bodyResult.bodyType}
+                          season={undefined}
+                          size={80}
+                        />
+                        <div className="flex-1">
+                          <p className="text-xs font-bold text-purple-600 uppercase tracking-wide mb-0.5">Vóc dáng của bạn</p>
+                          <p className="text-lg font-black text-gray-900">{bodyResult.emoji} {bodyResult.label || bodyResult.bodyType}</p>
+                          {bodyResult.tips && (
+                            <p className="text-xs text-gray-500 mt-1">{bodyResult.tips}</p>
+                          )}
+                        </div>
+                      </div>
+                      {bodyResult.characteristics.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {bodyResult.characteristics.map((c, i) => (
+                            <span key={i} className="text-[10px] font-semibold bg-white text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full">{c}</span>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Gender toggle */}
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Giới tính</p>
+                  <div className="flex gap-2">
+                    {([['female', '👩 Nữ'], ['male', '👨 Nam']] as const).map(([val, lbl]) => (
+                      <button
+                        key={val}
+                        onClick={() => setBodyForm(f => ({ ...f, gender: val }))}
+                        className={`flex-1 py-3 rounded-2xl font-bold text-sm border-2 transition-all ${
+                          bodyForm.gender === val
+                            ? "border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-sm"
+                            : "border-gray-100 bg-white text-gray-700 hover:border-gray-200"
+                        }`}
+                      >
+                        {bodyForm.gender === val && <Check className="w-3.5 h-3.5 inline mr-1 text-purple-600" />}
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Số đo cơ bản */}
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Số đo cơ thể</p>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { key: "height", icon: <Ruler className="w-3.5 h-3.5 text-blue-500" />, label: "Cao (cm)", placeholder: "165", color: "purple" },
-                      { key: "weight", icon: <Weight className="w-3.5 h-3.5 text-pink-500" />, label: "Nặng (kg)", placeholder: "55", color: "pink" },
-                      { key: "age",    icon: <CalendarDays className="w-3.5 h-3.5 text-amber-500" />, label: "Tuổi", placeholder: "22", color: "amber" },
+                      { key: "height", icon: <Ruler className="w-3.5 h-3.5 text-blue-500" />, label: "Cao (cm)", placeholder: "165" },
+                      { key: "weight", icon: <Weight className="w-3.5 h-3.5 text-pink-500" />, label: "Nặng (kg)", placeholder: "55" },
+                      { key: "age",    icon: <CalendarDays className="w-3.5 h-3.5 text-amber-500" />, label: "Tuổi", placeholder: "22" },
                     ].map(f => (
                       <div key={f.key}>
                         <label className="flex items-center gap-1 text-xs font-semibold text-gray-500 mb-1.5">
@@ -409,10 +530,36 @@ export function Profile() {
                   </AnimatePresence>
                 </div>
 
-                {/* Vóc dáng */}
+                {/* 3 vòng đo để phân loại vóc dáng tự động */}
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                    <Dumbbell className="w-3.5 h-3.5" /> 3 vòng đo (để phân loại vóc dáng)
+                  </p>
+                  <p className="text-[10px] text-gray-400 mb-3">Đo ở phần đầy nhất của ngực, nhỏ nhất của eo, đầy nhất của hông</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { key: "bust",  label: "Vòng 1 (cm)", placeholder: "88" },
+                      { key: "waist", label: "Vòng 2 (cm)", placeholder: "66" },
+                      { key: "hips",  label: "Vòng 3 (cm)", placeholder: "92" },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1.5">{f.label}</label>
+                        <input
+                          type="number"
+                          value={(bodyForm as Record<string, string>)[f.key]}
+                          onChange={e => setBodyForm({ ...bodyForm, [f.key]: e.target.value })}
+                          placeholder={f.placeholder}
+                          className="w-full px-2 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-purple-400 font-bold"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Vóc dáng thủ công (nếu chưa có 3 vòng) */}
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                    <Dumbbell className="w-3.5 h-3.5" /> Vóc dáng cơ thể
+                    Hoặc chọn vóc dáng thủ công
                   </p>
                   <div className="space-y-2">
                     {BODY_SHAPES.map(shape => {
@@ -468,13 +615,23 @@ export function Profile() {
 
               {/* Footer */}
               <div className="flex-shrink-0 px-6 pb-10 pt-3 border-t border-gray-100">
-                <div className="flex gap-3">
-                  <button onClick={() => setShowBodyPanel(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-2xl font-bold">{t("cancel")}</button>
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={handleSaveBody}
-                    className="flex-1 py-3.5 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2">
-                    <Check className="w-4 h-4" /> Lưu thông tin
-                  </motion.button>
-                </div>
+                {bodyResult ? (
+                  <div className="flex gap-3">
+                    <button onClick={() => setBodyResult(null)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-2xl font-bold">Sửa lại</button>
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowBodyPanel(false)}
+                      className="flex-1 py-3.5 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2">
+                      <Check className="w-4 h-4" /> Xong
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowBodyPanel(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-2xl font-bold">{t("cancel")}</button>
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={handleSaveBody} disabled={bodyLoading}
+                      className="flex-1 py-3.5 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2">
+                      {bodyLoading ? <span className="text-sm">Đang phân tích...</span> : <><Check className="w-4 h-4" /> Lưu thông tin</>}
+                    </motion.button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>

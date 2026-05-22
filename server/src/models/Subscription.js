@@ -5,6 +5,7 @@ const subscriptionSchema = new mongoose.Schema({
   tier: { type: String, enum: ['free', 'premium'], default: 'free' },
   startDate: Date,
   endDate: Date,
+  plan: { type: String, enum: ['1m', '3m', '6m'], default: '1m' },
   txnRef: String,
   paymentRef: String,
   amount: Number,

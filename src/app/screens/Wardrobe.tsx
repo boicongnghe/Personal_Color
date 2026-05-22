@@ -2,12 +2,13 @@ import { useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import {
   Plus, Shirt, Filter, Trash2, Sparkles, Crown, Lock,
-  Zap, Star, CheckCircle2, Palette, Wand2,
+  Zap, Star, CheckCircle2, Palette, Wand2, X,
 } from "lucide-react";
 import { BottomNav } from "../components/BottomNav";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAppContext } from "../context/AppContext";
 import { motion, AnimatePresence } from "motion/react";
+import useTryOn from "../hooks/useTryOn";
 
 const CATEGORIES = ["Tất cả", "Áo", "Quần", "Váy", "Áo khoác"];
 
@@ -38,12 +39,30 @@ export function Wardrobe() {
   const { wardrobeList, deleteWardrobeItem, t, user, loadWardrobe } = useAppContext();
   const [activeCategory, setActiveCategory] = useState("Tất cả");
   const [showPaywall, setShowPaywall] = useState(false);
+  const [tryingItemId, setTryingItemId] = useState<string | null>(null);
+
+  const { loading, result, error, progress, uploadPersonPhoto, tryOn, reset } = useTryOn();
 
   const isPremium = user.isPremium;
 
+  const onPersonPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    await uploadPersonPhoto(file);
+  };
+
+  const onTryOn = async (itemId: string) => {
+    setTryingItemId(itemId);
+    const res = await tryOn(itemId);
+    if (res?.needsPhoto) {
+      document.getElementById('person-photo-input')?.click();
+    }
+  };
+
   useEffect(() => {
-    if (isPremium) loadWardrobe();
-  }, [isPremium]);
+    loadWardrobe();
+  }, []);
 
   const filtered = activeCategory === "Tất cả"
     ? wardrobeList
@@ -250,54 +269,142 @@ export function Wardrobe() {
             </div>
           </div>
 
+          {/* Hidden person photo input */}
+          <input
+            id="person-photo-input"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onPersonPhotoChange}
+          />
+
+          {/* Gemini try-on result panel */}
+          <AnimatePresence>
+            {(loading || result || error) && (
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mx-6 mb-4 bg-white rounded-2xl shadow-md border border-purple-100 overflow-hidden"
+              >
+                <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                  <div>
+                    <p className="text-xs font-bold text-purple-600 uppercase tracking-wide">Thử đồ AI</p>
+                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">
+                      {wardrobeList.find(i => i.id === tryingItemId)?.name ?? ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { reset(); setTryingItemId(null); }}
+                    className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+
+                <div className="px-4 pb-4 pt-2">
+                  {loading && (
+                    <div className="text-center py-6">
+                      <div className="w-10 h-10 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-sm text-purple-600 font-medium">{progress || 'Đang xử lý...'}</p>
+                    </div>
+                  )}
+                  {error && !loading && (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-red-500 mb-3">{error}</p>
+                      <button
+                        onClick={() => { reset(); setTryingItemId(null); }}
+                        className="text-xs text-purple-600 font-semibold underline"
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  )}
+                  {result && !loading && (
+                    <div className="space-y-3">
+                      <img
+                        src={result.resultImage}
+                        alt="Kết quả thử đồ"
+                        className="w-full rounded-xl object-contain max-h-72"
+                      />
+                      {result.assessment && (
+                        <p className="text-xs text-gray-600 leading-relaxed">{result.assessment}</p>
+                      )}
+                      <button
+                        onClick={() => { reset(); setTryingItemId(null); }}
+                        className="w-full py-2 text-xs font-bold text-purple-600 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Wardrobe Grid */}
           {filtered.length > 0 ? (
             <div className="px-6 pb-8">
               <AnimatePresence mode="popLayout">
                 <div className="grid grid-cols-2 gap-4">
-                  {filtered.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.85 }}
-                      transition={{ duration: 0.2 }}
-                      className="bg-white rounded-2xl shadow-md overflow-hidden"
-                    >
-                      <div className="relative aspect-[3/4] bg-gray-100">
-                        <ImageWithFallback
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute top-3 left-3 px-2 py-1 bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs font-bold rounded-full shadow-sm">
-                          {item.match}%
+                  {filtered.map((item) => {
+                    const isThisLoading = loading && tryingItemId === item.id;
+                    return (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.85 }}
+                        transition={{ duration: 0.2 }}
+                        className="bg-white rounded-2xl shadow-md overflow-hidden"
+                      >
+                        <div className="relative aspect-[3/4] bg-gray-100">
+                          <ImageWithFallback
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 left-3 px-2 py-1 bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs font-bold rounded-full shadow-sm">
+                            {item.match}%
+                          </div>
+                          <div className={`absolute bottom-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-bold ${BADGE_COLORS[item.category] ?? "bg-gray-100 text-gray-600"}`}>
+                            {item.category}
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(t("confirmDelete"))) deleteWardrobeItem(item.id);
+                            }}
+                            className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                          </button>
                         </div>
-                        <div className={`absolute bottom-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-bold ${BADGE_COLORS[item.category] ?? "bg-gray-100 text-gray-600"}`}>
-                          {item.category}
+                        <div className="p-3">
+                          <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.name}</h3>
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {item.occasions.map((occ) => (
+                              <span key={occ} className="text-[10px] font-medium bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">
+                                {occ}
+                              </span>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => onTryOn(item.id)}
+                            disabled={isThisLoading}
+                            className={`w-full py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              isThisLoading
+                                ? "bg-purple-100 text-purple-500 cursor-wait"
+                                : "bg-gray-50 text-gray-600 hover:bg-purple-50 hover:text-purple-600"
+                            }`}
+                          >
+                            {isThisLoading ? "Đang xử lý..." : "Thử đồ"}
+                          </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(t("confirmDelete"))) deleteWardrobeItem(item.id);
-                          }}
-                          className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
-                        </button>
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{item.name}</h3>
-                        <div className="flex flex-wrap gap-1">
-                          {item.occasions.map((occ) => (
-                            <span key={occ} className="text-[10px] font-medium bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">
-                              {occ}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </AnimatePresence>
             </div>

@@ -31,7 +31,14 @@ export const saveOutfitPreference = (data) => api.post('/api/save-scan', data);
 export const getOutfitSuggestions = (season, occasion) =>
   api.get(`/api/outfit/${season}`, { params: { occasion } });
 
-export const addWardrobeItem = (data) => api.post('/api/wardrobe', data);
+export const addWardrobeItem = (data) =>
+  data instanceof FormData
+    ? api.post('/api/wardrobe', data, { headers: { 'Content-Type': 'multipart/form-data' } })
+    : api.post('/api/wardrobe', data);
+
+export const getScanHistory = () => api.get('/api/scans');
+
+export const deleteScan = (scanId) => api.delete(`/api/scans/${scanId}`);
 
 export const getWardrobe = () => api.get('/api/wardrobe');
 
@@ -47,9 +54,39 @@ export const getMe = () => api.get('/api/auth/me');
 
 export const getSubscription = () => api.get('/api/subscription');
 
-export const createUpgradePayment = () => api.post('/api/subscription/upgrade');
+export const getPlans = () => api.get('/api/subscription/plans');
 
-export const verifyPaymentCallback = (params) =>
-  api.get('/api/subscription/callback', { params });
+export const createUpgradePayment = (plan = '1m') =>
+  api.post('/api/subscription/upgrade', { plan });
+
+export const confirmPayment = (orderId) =>
+  api.post('/api/subscription/confirm-payment', { orderId });
+
+export const saveBodyProfile = (data) => api.post('/api/user/body-profile', data);
+export const getBodyProfile  = ()     => api.get('/api/user/body-profile');
+
+export const getAllUsersAdmin    = ()                  => api.get('/api/user/admin/all');
+export const updateUserTierAdmin = (id, tier)          => api.patch(`/api/user/admin/${id}/tier`, { tier });
+export const banUserAdmin        = (id, isBanned)      => api.patch(`/api/user/admin/${id}/ban`, { isBanned });
+
+export const savePersonPhoto = (formData) =>
+  api.post('/api/wardrobe/try-on/save-photo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+export const tryOnItem = (formData) =>
+  api.post('/api/wardrobe/try-on', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+export const checkPersonPhoto = () => api.get('/api/wardrobe/try-on/has-photo');
+
+export const previewProduct    = (url)      => api.post('/api/products/preview', { url });
+export const createProduct     = (data)     => api.post('/api/products', data);
+export const getProducts       = (occasion) => api.get(`/api/products?occasion=${occasion ?? 'all'}`);
+export const getAllProducts     = ()         => api.get('/api/products/all');
+export const updateProduct     = (id, data) => api.patch(`/api/products/${id}`, data);
+export const deleteProduct     = (id)       => api.delete(`/api/products/${id}`);
+export const trackProductClick = (id)       => api.post(`/api/products/${id}/click`);
 
 export default api;

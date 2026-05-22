@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const authMiddleware = require('../middleware/auth');
-const { getSubscription, createUpgrade, handleCallback } = require('../controllers/subscriptionController');
+const { getSubscription, getPlans, createUpgrade, confirmPayment } = require('../controllers/subscriptionController');
 
-router.get('/callback', handleCallback);
+router.get('/plans', getPlans);
 router.get('/', authMiddleware, getSubscription);
 router.post('/upgrade', authMiddleware, createUpgrade);
+router.post('/confirm-payment', authMiddleware, confirmPayment);
 
 module.exports = router;
