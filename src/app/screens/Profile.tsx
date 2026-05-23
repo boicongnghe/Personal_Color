@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router";
 import { useState, useRef } from "react";
 import {
-  Crown, Palette, Settings, HelpCircle, LogOut, ChevronRight,
-  Shield, Edit2, Camera, User as UserIcon, Ruler, Weight,
+  Crown, Palette, Settings, LogOut, ChevronRight,
+  Edit2, Camera, User as UserIcon, Ruler, Weight,
   Sparkles, Check, X, Wallet, CalendarDays, Dumbbell,
   ScanFace, Bot, Users,
 } from "lucide-react";
@@ -38,9 +38,10 @@ function calcBMI(h: string, w: string) {
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user, updateUser, language, setLanguage, t, wardrobeList, favoriteOutfitIds, saveBodyProfile, logout } = useAppContext();
+  const { user, updateUser, language, setLanguage, t, wardrobeList, favoriteOutfitIds, saveBodyProfile, uploadAvatar, logout } = useAppContext();
   const isVi = language === "vi";
 
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showBodyPanel,   setShowBodyPanel]   = useState(false);
   const [editName,  setEditName]  = useState(user.name);
@@ -78,9 +79,12 @@ export function Profile() {
   const hasBodyData = !!(user.bodyProfile?.bodyType || user.bodyProfile?.height || user.bodyProfile?.bodyShape);
 
   const handleSaveProfile = () => { updateUser({ name: editName, email: editEmail }); setShowProfileEdit(false); };
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) updateUser({ avatar: URL.createObjectURL(file) });
+    if (!file) return;
+    setAvatarUploading(true);
+    await uploadAvatar(file);
+    setAvatarUploading(false);
   };
 
   const handleSaveBody = async () => {
@@ -177,9 +181,7 @@ export function Profile() {
   ];
 
   const settingsMenu: MenuItem[] = [
-    { icon: Settings,   label: t("settings"),       path: "/settings" },
-    { icon: HelpCircle, label: t("helpSupport"),    path: "/help" },
-    { icon: Shield,     label: t("privacyPolicy"),  path: "/privacy" },
+    { icon: Settings, label: t("settings"), path: "/settings" },
   ];
 
   const renderMenu = (items: MenuItem[]) =>
@@ -257,9 +259,11 @@ export function Profile() {
                   : <span>{user.name.charAt(0).toUpperCase() || "U"}</span>
                 }
               </div>
-              <button onClick={() => fileInputRef.current?.click()}
+              <button onClick={() => !avatarUploading && fileInputRef.current?.click()}
                 className="absolute bottom-0 right-0 w-7 h-7 bg-gray-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-sm">
-                <Camera className="w-3.5 h-3.5" />
+                {avatarUploading
+                  ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Camera className="w-3.5 h-3.5" />}
               </button>
             </div>
             {/* Info */}
@@ -366,8 +370,10 @@ export function Profile() {
                   <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
                     {user.avatar ? <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" /> : <UserIcon className="w-10 h-10 text-gray-400" />}
                   </div>
-                  <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-sm">
-                    <Camera className="w-4 h-4" />
+                  <button onClick={() => !avatarUploading && fileInputRef.current?.click()} className="absolute bottom-0 right-0 w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-sm">
+                    {avatarUploading
+                      ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      : <Camera className="w-4 h-4" />}
                   </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">Nhấn để đổi ảnh đại diện</p>

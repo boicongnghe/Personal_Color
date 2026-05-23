@@ -2,11 +2,13 @@ const router = require('express').Router();
 const jwt    = require('jsonwebtoken');
 const authMiddleware = require('../middleware/auth');
 const passport = require('../config/passport');
-const { register, login, getMe } = require('../controllers/authController');
+const { register, login, getMe, forgotPassword, resetPassword } = require('../controllers/authController');
 
 router.post('/register', register);
 router.post('/login', login);
 router.get('/me', authMiddleware, getMe);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password',  resetPassword);
 
 const issueToken = (req, res) => {
   const token = jwt.sign({ userId: req.user._id, isAdmin: req.user.isAdmin ?? false }, process.env.JWT_SECRET, { expiresIn: '7d' });

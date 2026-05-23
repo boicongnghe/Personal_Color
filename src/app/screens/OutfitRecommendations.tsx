@@ -68,12 +68,11 @@ const PLATFORM_LABEL: Record<string, string> = {
 ══════════════════════════════════════════ */
 export function OutfitRecommendations() {
   const navigate = useNavigate();
-  const { t, user } = useAppContext();
+  const { t, user, favoriteOutfitIds, toggleFavoriteOutfit } = useAppContext();
 
-  const [products, setProducts]           = useState<ApiProduct[]>([]);
-  const [loading, setLoading]             = useState(true);
+  const [products, setProducts]             = useState<ApiProduct[]>([]);
+  const [loading, setLoading]               = useState(true);
   const [activeOccasion, setActiveOccasion] = useState<string>("all");
-  const [favorites, setFavorites]         = useState<Set<string>>(new Set());
 
   /* Load all products once */
   useEffect(() => {
@@ -113,13 +112,7 @@ export function OutfitRecommendations() {
             (p.occasions ?? []).includes("all")
         ).length;
 
-  const toggleFav = (id: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
+  const toggleFav = (id: string) => toggleFavoriteOutfit(id);
 
   const handleClick = async (p: ApiProduct) => {
     try { await trackProductClick(p._id); } catch { /* non-critical */ }
@@ -225,7 +218,7 @@ export function OutfitRecommendations() {
                       >
                         <Heart
                           className={`w-4 h-4 ${
-                            favorites.has(p._id) ? "fill-red-500 text-red-500" : "text-gray-400"
+                            favoriteOutfitIds.has(p._id) ? "fill-red-500 text-red-500" : "text-gray-400"
                           }`}
                         />
                       </button>

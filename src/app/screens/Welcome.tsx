@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { Sparkles, Palette, Shirt } from "lucide-react";
 import { motion } from "motion/react";
+import logoUrl from "../../assets/logo.png";
 
 export function Welcome() {
   const navigate = useNavigate();
@@ -32,8 +33,12 @@ export function Welcome() {
         transition={{ duration: 0.6 }}
         className="text-center mt-12"
       >
-        <div className="w-20 h-20 bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <Sparkles className="w-10 h-10 text-white" />
+        <div className="w-28 h-28 rounded-2xl mx-auto mb-6 shadow-lg overflow-hidden">
+          <img
+            src={logoUrl}
+            alt="Clarity"
+            className="w-full h-full object-cover"
+          />
         </div>
         <h1 className="text-4xl font-bold text-gray-900 mb-3">Clarity</h1>
         <p className="text-gray-600 text-lg">Người hướng dẫn màu sắc cá nhân của bạn</p>

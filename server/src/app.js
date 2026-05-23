@@ -16,6 +16,9 @@ const wardrobeRoutes = require('./routes/wardrobe');
 const subscriptionRoutes = require('./routes/subscription');
 const userRoutes    = require('./routes/user');
 const productRoutes = require('./routes/products');
+const supportRoutes    = require('./routes/support');
+const assistantRoutes      = require('./routes/assistant');
+const conversationRoutes   = require('./routes/conversations');
 
 const app = express();
 
@@ -50,6 +53,9 @@ app.use('/api/wardrobe', wardrobeRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/user',     userRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/support',    supportRoutes);
+app.use('/api/assistant',     assistantRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err.message);

@@ -1,17 +1,29 @@
 import { useNavigate } from "react-router";
-import { ArrowLeft, Mail, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, CheckCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAppContext } from "../context/AppContext";
+import { forgotPassword as apiForgotPassword } from "../../api/api";
 
 export function ForgotPassword() {
   const navigate = useNavigate();
   const { t } = useAppContext();
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [email, setEmail]     = useState("");
+  const [sent, setSent]       = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    setError(null);
+    setLoading(true);
+    try {
+      await apiForgotPassword(email.trim());
+      setSent(true);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Không thể gửi email. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {
@@ -23,12 +35,15 @@ export function ForgotPassword() {
         <h1 className="text-2xl font-bold text-gray-900 mb-3 text-center">
           {t("checkYourEmail")}
         </h1>
-        <p className="text-gray-600 text-center mb-8 max-w-sm">
+        <p className="text-gray-600 text-center mb-2 max-w-sm">
           {t("resetLinkSent")} <span className="font-semibold">{email}</span>
+        </p>
+        <p className="text-gray-400 text-sm text-center mb-8 max-w-sm">
+          Link có hiệu lực trong 1 giờ. Kiểm tra cả thư mục Spam nếu không thấy.
         </p>
         <button
           onClick={() => navigate("/login")}
-          className="w-full max-w-sm py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:bg-blue-700 transition-colors"
+          className="w-full max-w-sm py-4 bg-gray-900 text-white rounded-2xl font-semibold text-base hover:bg-black transition-colors"
         >
           {t("backToLogin")}
         </button>
@@ -38,7 +53,6 @@ export function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <div className="px-6 pt-12 pb-8">
         <button
           onClick={() => navigate("/login")}
@@ -48,17 +62,15 @@ export function ForgotPassword() {
         </button>
       </div>
 
-      {/* Content */}
       <div className="px-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("forgotPasswordTitle")}</h1>
-        <p className="text-gray-600 mb-8">
+        <p className="text-gray-500 mb-8 text-sm leading-relaxed">
           {t("forgotPasswordDesc")}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email Input */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               {t("emailLabel")}
             </label>
             <div className="relative">
@@ -68,18 +80,29 @@ export function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t("emailPlaceholder")}
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
                 required
+                disabled={loading}
               />
             </div>
           </div>
 
-          {/* Submit Button */}
+          {error && (
+            <div className="px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:bg-blue-700 transition-colors"
+            disabled={loading}
+            className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-400 text-white rounded-2xl font-bold text-base shadow-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
           >
-            {t("sendResetLink")}
+            {loading ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Đang gửi...</>
+            ) : (
+              t("sendResetLink")
+            )}
           </button>
         </form>
       </div>

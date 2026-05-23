@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useAppContext } from "../context/AppContext";
@@ -125,8 +125,21 @@ export function Signup() {
             />
             <label htmlFor="terms" className="text-sm text-gray-600">
               Tôi đồng ý với{" "}
-              <span className="text-purple-600 font-medium">Điều khoản dịch vụ</span>{" "}
-              và <span className="text-purple-600 font-medium">Chính sách bảo mật</span>
+              <Link
+                to="/terms"
+                className="text-purple-600 font-medium underline underline-offset-2 hover:text-purple-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Điều khoản dịch vụ
+              </Link>
+              {" "}và{" "}
+              <Link
+                to="/privacy"
+                className="text-purple-600 font-medium underline underline-offset-2 hover:text-purple-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Chính sách bảo mật
+              </Link>
             </label>
           </div>
 

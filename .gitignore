@@ -21,3 +21,9 @@ npm-debug.log*
 # Editor
 .vscode/settings.json
 .idea/
+
+# Claude Code local data
+.claude/
+
+# Uploaded user files
+server/uploads/

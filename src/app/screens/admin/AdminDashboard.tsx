@@ -9,6 +9,7 @@ import {
   Save,
   LogOut,
   Package,
+  MessageCircle,
 } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 
@@ -272,9 +273,15 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => navigate("/admin/products")}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition-colors border border-purple-200"
+              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition-colors border border-purple-200"
             >
               <Package className="w-4 h-4" /> Sản phẩm
+            </button>
+            <button
+              onClick={() => navigate("/admin/support")}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-xl transition-colors border border-teal-200"
+            >
+              <MessageCircle className="w-4 h-4" /> Hỗ trợ
             </button>
             <button
               onClick={() => { logout(); navigate("/login"); }}

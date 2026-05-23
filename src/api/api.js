@@ -50,7 +50,9 @@ export const register = (email, password, displayName) =>
 export const login = (email, password) =>
   api.post('/api/auth/login', { email, password });
 
-export const getMe = () => api.get('/api/auth/me');
+export const getMe           = ()                           => api.get('/api/auth/me');
+export const forgotPassword  = (email)                      => api.post('/api/auth/forgot-password', { email });
+export const resetPassword   = (token, newPassword)         => api.post('/api/auth/reset-password',  { token, newPassword });
 
 export const getSubscription = () => api.get('/api/subscription');
 
@@ -62,6 +64,9 @@ export const createUpgradePayment = (plan = '1m') =>
 export const confirmPayment = (orderId) =>
   api.post('/api/subscription/confirm-payment', { orderId });
 
+export const uploadAvatar      = (formData) =>
+  api.post('/api/user/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const toggleFavoriteApi = (productId) => api.post(`/api/user/favorites/${productId}`);
 export const saveBodyProfile = (data) => api.post('/api/user/body-profile', data);
 export const getBodyProfile  = ()     => api.get('/api/user/body-profile');
 
@@ -88,5 +93,25 @@ export const getAllProducts     = ()         => api.get('/api/products/all');
 export const updateProduct     = (id, data) => api.patch(`/api/products/${id}`, data);
 export const deleteProduct     = (id)       => api.delete(`/api/products/${id}`);
 export const trackProductClick = (id)       => api.post(`/api/products/${id}/click`);
+
+export const chatAssistant = (message, imageFile, history, occasion) => {
+  const fd = new FormData();
+  fd.append('message', message || '');
+  fd.append('occasion', occasion || '');
+  fd.append('history', JSON.stringify(history || []));
+  if (imageFile) fd.append('image', imageFile);
+  return api.post('/api/assistant/chat', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+
+export const listConversations   = ()           => api.get('/api/conversations');
+export const createConversation  = (title)      => api.post('/api/conversations', { title });
+export const getConversation     = (id)         => api.get(`/api/conversations/${id}`);
+export const updateConversation  = (id, data)   => api.put(`/api/conversations/${id}`, data);
+export const deleteConversation  = (id)         => api.delete(`/api/conversations/${id}`);
+
+export const sendSupportMessage  = (message)       => api.post('/api/support', { message });
+export const getMySupportMessages = ()              => api.get('/api/support');
+export const getAllSupportMessages = ()             => api.get('/api/support/admin/all');
+export const replyToSupportMessage = (id, reply)   => api.patch(`/api/support/${id}/reply`, { reply });
 
 export default api;

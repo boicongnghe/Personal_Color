@@ -155,4 +155,33 @@ const updateUserTierAdmin = async (req, res, next) => {
   }
 };
 
-module.exports = { saveBodyProfile, getBodyProfile, getAllUsersAdmin, updateUserTierAdmin, banUserAdmin };
+const toggleFavorite = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const user = await User.findById(req.userId).select('favoriteProductIds');
+    const isFav = user.favoriteProductIds.some(id => id.toString() === productId);
+    const update = isFav
+      ? { $pull: { favoriteProductIds: productId } }
+      : { $addToSet: { favoriteProductIds: productId } };
+    const updated = await User.findByIdAndUpdate(req.userId, update, { new: true }).select('favoriteProductIds');
+    res.json({
+      success: true,
+      data: { favoriteProductIds: updated.favoriteProductIds.map(id => id.toString()) },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const uploadAvatarController = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'Không có file ảnh' });
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    await User.findByIdAndUpdate(req.userId, { $set: { avatarUrl } });
+    res.json({ success: true, data: { avatarUrl } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { saveBodyProfile, getBodyProfile, getAllUsersAdmin, updateUserTierAdmin, banUserAdmin, uploadAvatarController, toggleFavorite };

@@ -1,11 +1,17 @@
 import { useNavigate } from "react-router";
 import {
   ArrowLeft, Camera, FolderOpen, Send, Sparkles, Crown,
-  ImageIcon, X, RotateCcw, Check, Lock, Zap,
+  X, RotateCcw, Lock, Zap, Clock, Plus, Trash2,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "../context/AppContext";
+import {
+  chatAssistant, listConversations, createConversation,
+  getConversation, updateConversation, deleteConversation,
+} from "../../api/api";
+import { AssistantMessage, LoadingBubble } from "../components/AssistantMessage";
+import { UserMessage } from "../components/UserMessage";
 
 /* ─────────────────────────── Types ─────────────────────────── */
 type Role = "user" | "ai";
@@ -22,6 +28,30 @@ interface Analysis {
   occasion: string;
   feedback: string;
   tips: string[];
+  colorNote?: string;
+  followUp?: string;
+}
+
+interface GeminiAnalysis {
+  score: number;
+  label: string;
+  occasion: string;
+  summary: string;
+  suggestions: string[];
+  colorNote?: string;
+  followUp?: string;
+}
+
+interface GeminiResponse {
+  reply: string;
+  analysis: GeminiAnalysis | null;
+}
+
+interface ConvSummary {
+  _id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /* ─────────────────────── Quick prompts ─────────────────────── */
@@ -38,24 +68,6 @@ const QUICK_PROMPTS = [
   { emoji: "🌸", label: "Chụp ảnh",     context: "chụp ảnh ngoài trời, sống ảo" },
 ];
 
-/* ─────────────── Mock AI response engine ─────────────────── */
-function buildAnalysis(occasion: string): Analysis {
-  const occasions: Record<string, Partial<Analysis>> = {
-    "đi làm văn phòng":           { suitable: true,  score: 90, occasion: "Công sở",             feedback: "Bộ trang phục khá chuyên nghiệp và gọn gàng, phù hợp cho môi trường công sở.",  tips: ["Thêm đồng hồ hoặc vòng tay mảnh để tăng vẻ chuyên nghiệp", "Túi tote da nhỏ màu đen hoặc nâu", "Giày bệt hoặc cao gót thấp"] },
-    "dự tiệc hoặc sự kiện":       { suitable: true,  score: 94, occasion: "Dự tiệc · Sự kiện",   feedback: "Rất nổi bật và phù hợp! Bộ đồ có điểm nhấn tốt, sẽ giúp bạn tự tin trong mọi buổi tiệc.", tips: ["Clutch bag ánh kim sang trọng", "Khuyên tai vòng lớn hoặc statement jewelry", "High heel hoặc block heel"] },
-    "hẹn hò buổi tối":            { suitable: true,  score: 97, occasion: "Hẹn hò · Lãng mạn",   feedback: "Tuyệt vời! Vừa gợi cảm tinh tế vừa nhẹ nhàng lãng mạn — đúng chuẩn cho buổi hẹn hò đáng nhớ!",  tips: ["Nước hoa nhẹ nhàng dạng floral", "Túi mini dây xích màu gold", "Son màu nude hoặc đỏ berry"] },
-    "đi du lịch nghỉ mát":        { suitable: true,  score: 88, occasion: "Du lịch · Kỳ nghỉ",    feedback: "Thoải mái và năng động — rất phù hợp cho chuyến đi xa.",                         tips: ["Thêm cardigan đề phòng điều hòa", "Sneaker hoặc sandal êm chân", "Tote bag canvas lớn"] },
-    "dạo phố mua sắm cuối tuần":  { suitable: true,  score: 92, occasion: "Thường ngày · Phố",    feedback: "Casual chic rất hợp trend! Thoải mái nhưng vẫn có điểm nhấn cá tính.",           tips: ["Cap hoặc mũ bucket trendy", "Mini bag crossbody tiện lợi", "Sneaker trắng hoặc loafer"] },
-    "đến trường / đại học":        { suitable: true,  score: 86, occasion: "Đi học · Campus",      feedback: "Trẻ trung, năng động và phù hợp học đường.",                                   tips: ["Balo nhỏ hoặc tote bag", "Bomber jacket khi trời mát", "Sneaker màu pastel"] },
-    "ăn tối nhà hàng lãng mạn":   { suitable: true,  score: 95, occasion: "Ăn tối · Fine Dining", feedback: "Tinh tế và sang trọng vừa đủ — hoàn hảo cho bữa tối nhà hàng.",              tips: ["Khăn lụa hoặc pearl earrings", "Ví cầm tay nhỏ màu nude", "Kitten heels sang trọng"] },
-    "tập thể dục, gym, yoga":      { suitable: false, score: 62, occasion: "Thể thao · Gym",        feedback: "Chưa phù hợp lắm cho việc tập luyện — chất liệu có thể hạn chế vận động.",    tips: ["Set đồ Dry-fit hoặc Spandex thấm hút", "Giày chuyên dụng chống chấn thương", "Buộc tóc gọn gàng"] },
-    "đi cafe hoặc triển lãm nghệ thuật": { suitable: true, score: 93, occasion: "Cafe · Nghệ thuật", feedback: "Aesthetic và cá tính! Rất hợp ở không gian sáng tạo, cafe thời thượng.",    tips: ["Kính mắt gọng mảnh cat-eye", "Tote bag canvas hoặc book bag", "Trench coat hoặc wide-shoulder jacket"] },
-    "chụp ảnh ngoài trời, sống ảo": { suitable: true, score: 96, occasion: "Chụp ảnh · Outdoor",  feedback: "Camera-ready hoàn toàn! Màu sắc và kiểu dáng rất ăn ảnh.",                    tips: ["Thêm phụ kiện nhỏ để ảnh thêm layered", "Son tương phản nhẹ với trang phục", "Hat hoặc sunglasses nếu nắng"] },
-  };
-  const base = occasions[occasion] ?? { suitable: true, score: 88, occasion: "Đa dụng", feedback: "Bộ trang phục khá versatile!", tips: ["Phụ kiện đơn giản", "Giày tông trung tính", "Túi nhỏ gọn"] };
-  const score = Math.min(99, (base.score ?? 88) + Math.floor(Math.random() * 5) - 2);
-  return { ...(base as Analysis), score };
-}
 
 const GREET: Msg = {
   id: 0, role: "ai",
@@ -196,17 +208,102 @@ export function SmartAdvisor() {
   const [inputText, setInputText]       = useState("");
   const [pendingOccasion, setPending]   = useState<string | null>(null);
   const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingFile, setPendingFile]   = useState<File | null>(null);
   const [isTyping, setIsTyping]         = useState(false);
   const [isPremiumLocked]               = useState(!user.isPremium);
+
+  const [showCamera, setShowCamera]   = useState(false);
+  const [facingMode, setFacingMode]   = useState<"environment" | "user">("environment");
 
   const fileInputRef   = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const bottomRef      = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const historyRef     = useRef<{ role: "user" | "model"; text: string }[]>([]);
+  const videoRef       = useRef<HTMLVideoElement>(null);
+  const streamRef      = useRef<MediaStream | null>(null);
+
+  const [conversations, setConversations] = useState<ConvSummary[]>([]);
+  const [showHistory, setShowHistory]     = useState(false);
+  const [convId, setConvId]               = useState<string | null>(null);
+  const convIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (showCamera && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [showCamera]);
+
+  useEffect(() => {
+    return () => { streamRef.current?.getTracks().forEach(t => t.stop()); };
+  }, []);
+
+  useEffect(() => {
+    listConversations().then(res => setConversations(res.data.data)).catch(() => {});
+  }, []);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (diff === 0) return 'Hôm nay';
+    if (diff === 1) return 'Hôm qua';
+    if (diff < 7) return `${diff} ngày trước`;
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+  };
+
+  const newChat = () => {
+    setMessages([GREET]);
+    setPending(null);
+    setPendingImage(null);
+    setPendingFile(null);
+    historyRef.current = [];
+    convIdRef.current = null;
+    setConvId(null);
+    setShowHistory(false);
+  };
+
+  const loadConv = async (id: string) => {
+    try {
+      const res = await getConversation(id);
+      const dbConv = res.data.data;
+      const msgs: Msg[] = [
+        GREET,
+        ...dbConv.messages.map((m: any, i: number) => ({
+          id: i + 1,
+          role: m.role as Role,
+          text: m.text || undefined,
+          analysis: m.analysis || undefined,
+        })),
+      ];
+      setMessages(msgs);
+      convIdRef.current = id;
+      setConvId(id);
+      historyRef.current = dbConv.messages
+        .filter((m: any) => m.text)
+        .map((m: any) => ({
+          role: (m.role === 'ai' ? 'model' : 'user') as 'user' | 'model',
+          text: m.text as string,
+        }));
+      setPending(null);
+      setPendingImage(null);
+      setPendingFile(null);
+      setShowHistory(false);
+    } catch { /* silent */ }
+  };
+
+  const handleDeleteConv = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteConversation(id);
+      setConversations(prev => prev.filter(c => c._id !== id));
+      if (convIdRef.current === id) newChat();
+    } catch { /* silent */ }
+  };
 
   const addAI = useCallback((text: string, analysis?: Analysis, delay = 1200) => {
     setIsTyping(true);
@@ -216,27 +313,74 @@ export function SmartAdvisor() {
     }, delay);
   }, []);
 
-  const sendMessage = useCallback((text?: string, image?: string, occasion?: string) => {
+  const sendMessage = useCallback(async (text?: string, image?: string, occasion?: string, file?: File) => {
     const msgText  = text  ?? inputText.trim();
     const msgImage = image ?? pendingImage ?? undefined;
+    const msgFile  = file  ?? pendingFile  ?? undefined;
     if (!msgText && !msgImage) return;
+
     const userMsg: Msg = { id: Date.now(), role: "user", text: msgText || undefined, image: msgImage || undefined };
     setMessages((prev) => [...prev, userMsg]);
     setInputText("");
     setPendingImage(null);
+    setPendingFile(null);
+    setIsTyping(true);
+
     const occ = occasion ?? pendingOccasion ?? "";
-    if (msgImage) {
-      const analysis = buildAnalysis(occ);
-      const replyText = analysis.suitable
-        ? `✨ Phân tích xong! Bộ đồ này **RẤT PHÙ HỢP** cho dịp **${occ || "bạn chọn"}**.`
-        : `🤔 Bộ đồ này **chưa lý tưởng** cho dịp **${occ || "bạn chọn"}** — mình có gợi ý phía dưới nhé!`;
-      addAI(replyText, analysis, 1800);
-    } else {
-      const hasImg = [...messages, userMsg].some(m => m.role === "user" && m.image);
-      if (!hasImg && occ) { addAI(`Tuyệt! Hãy gửi ảnh bộ đồ cho dịp **${occ}** nhé! 📸`, undefined, 800); }
-      else if (!hasImg) { addAI("Bạn muốn mặc gì hôm nay? Chọn dịp bên dưới hoặc kể mình nghe bạn đi đâu! 😊", undefined, 800); }
+
+    if (msgText) {
+      historyRef.current = [...historyRef.current, { role: "user" as const, text: msgText }];
     }
-  }, [inputText, pendingImage, pendingOccasion, messages, addAI]);
+
+    try {
+      const res = await chatAssistant(msgText || "", msgFile || null, historyRef.current.slice(-8), occ);
+      const data = res.data.data as GeminiResponse;
+
+      const rawScore = data.analysis?.score;
+      const normScore = rawScore !== undefined && rawScore !== null ? Number(rawScore) : null;
+
+      const analysis: Analysis | undefined = data.analysis && normScore !== null && !isNaN(normScore) ? {
+        score:    normScore,
+        suitable: data.analysis.label === "Rất phù hợp" || data.analysis.label === "Phù hợp",
+        occasion: data.analysis.occasion  || "",
+        feedback: data.analysis.summary   || "",
+        tips:     Array.isArray(data.analysis.suggestions) ? data.analysis.suggestions : [],
+        colorNote: data.analysis.colorNote || undefined,
+        followUp:  data.analysis.followUp  || undefined,
+      } : undefined;
+
+      setIsTyping(false);
+      setMessages((prev) => [...prev, { id: Date.now(), role: "ai", text: data.reply, analysis }]);
+
+      if (data.reply) {
+        historyRef.current = [...historyRef.current, { role: "model" as const, text: data.reply }];
+      }
+
+      // Persist messages to conversation history (fail silently)
+      try {
+        const userMsgDB = { role: 'user', text: msgText || '' };
+        const aiMsgDB   = { role: 'ai',   text: data.reply || '', analysis: analysis ?? null };
+        if (!convIdRef.current) {
+          const title = (msgText || 'Cuộc trò chuyện mới').slice(0, 80);
+          const cRes  = await createConversation(title);
+          const newId = cRes.data.data._id;
+          convIdRef.current = newId;
+          setConvId(newId);
+          await updateConversation(newId, { messages: [userMsgDB, aiMsgDB] });
+        } else {
+          await updateConversation(convIdRef.current, { messages: [userMsgDB, aiMsgDB] });
+        }
+        listConversations().then(res => setConversations(res.data.data)).catch(() => {});
+      } catch { /* silent */ }
+
+    } catch {
+      setIsTyping(false);
+      setMessages((prev) => [...prev, {
+        id: Date.now(), role: "ai",
+        text: "⚠️ Xin lỗi, mình không thể kết nối với AI lúc này. Vui lòng thử lại sau!",
+      }]);
+    }
+  }, [inputText, pendingImage, pendingFile, pendingOccasion]);
 
   const handleQuickPrompt = (ctx: string, label: string) => {
     setPending(ctx);
@@ -249,6 +393,7 @@ export function SmartAdvisor() {
     const file = e.target.files?.[0];
     if (!file) return;
     setPendingImage(URL.createObjectURL(file));
+    setPendingFile(file);
     e.target.value = "";
   };
 
@@ -256,6 +401,54 @@ export function SmartAdvisor() {
     setInputText(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+  };
+
+  const openCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      streamRef.current = stream;
+      setShowCamera(true);
+    } catch {
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const closeCamera = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+      setPendingImage(URL.createObjectURL(file));
+      setPendingFile(file);
+      closeCamera();
+    }, "image/jpeg", 0.92);
+  };
+
+  const flipCamera = async () => {
+    const next = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch { /* ignore */ }
   };
 
   /* ── Paywall gate ── */
@@ -284,31 +477,29 @@ export function SmartAdvisor() {
               <p className="text-xs text-gray-500">Clarity AI • Đang hoạt động</p>
             </div>
           </div>
-          <button onClick={() => { setMessages([GREET]); setPending(null); setPendingImage(null); }}
+          <button onClick={newChat} title="Tạo mới"
             className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-            <RotateCcw className="w-4 h-4 text-gray-500" />
+            <Plus className="w-4 h-4 text-gray-500" />
+          </button>
+          <button onClick={() => setShowHistory(true)} title="Lịch sử"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+            <Clock className="w-4 h-4 text-gray-500" />
           </button>
         </div>
       </div>
 
       {/* ─── Messages ─── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {messages.map((msg) => <ChatBubble key={msg.id} msg={msg} />)}
+      <div className="flex-1 overflow-y-auto px-4 py-4" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {messages.map((msg) =>
+          msg.role === "user"
+            ? <UserMessage key={msg.id} message={msg} />
+            : <AssistantMessage key={msg.id} message={msg} onFollowUp={(text) => sendMessage(text)} />
+        )}
 
         <AnimatePresence>
           {isTyping && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-end gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-400 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm border border-purple-100">
-                <div className="flex gap-1 items-center">
-                  {[0, 0.2, 0.4].map((d, i) => (
-                    <motion.div key={i} animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: d }}
-                      className="w-2 h-2 rounded-full bg-purple-400" />
-                  ))}
-                </div>
-              </div>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <LoadingBubble />
             </motion.div>
           )}
         </AnimatePresence>
@@ -370,7 +561,7 @@ export function SmartAdvisor() {
             <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 bg-purple-100 hover:bg-purple-200 text-purple-600 rounded-2xl flex items-center justify-center transition-colors">
               <FolderOpen className="w-5 h-5" />
             </button>
-            <button onClick={() => cameraInputRef.current?.click()} className="w-10 h-10 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-2xl flex items-center justify-center transition-colors">
+            <button onClick={openCamera} className="w-10 h-10 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-2xl flex items-center justify-center transition-colors">
               <Camera className="w-5 h-5" />
             </button>
           </div>
@@ -387,84 +578,150 @@ export function SmartAdvisor() {
           </button>
         </div>
       </div>
+
+      {/* ─── History Drawer ─── */}
+      <AnimatePresence>
+        {showHistory && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowHistory(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.45)" }}
+            />
+            <motion.div
+              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              style={{
+                position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 41,
+                width: 280, background: "#fff", display: "flex", flexDirection: "column",
+                boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
+              }}
+            >
+              {/* Drawer header */}
+              <div style={{ padding: "52px 16px 12px", borderBottom: "1px solid #f3e8ff", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#1f1535" }}>Lịch sử chat</span>
+                <button onClick={() => setShowHistory(false)}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: "#f3f4f6", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <X style={{ width: 16, height: 16, color: "#6b7280" }} />
+                </button>
+              </div>
+
+              {/* New chat button */}
+              <div style={{ padding: "10px 12px 6px" }}>
+                <button onClick={newChat}
+                  style={{
+                    width: "100%", padding: "10px 14px", borderRadius: 12,
+                    background: "linear-gradient(135deg,#9333ea,#ec4899)",
+                    color: "#fff", border: "none", cursor: "pointer",
+                    fontSize: 13, fontWeight: 600,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}>
+                  <Plus style={{ width: 15, height: 15 }} />
+                  Tạo cuộc trò chuyện mới
+                </button>
+              </div>
+
+              {/* Conversation list */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
+                {conversations.length === 0 ? (
+                  <div style={{ padding: "32px 16px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                    Chưa có cuộc trò chuyện nào
+                  </div>
+                ) : conversations.map(conv => (
+                  <button
+                    key={conv._id}
+                    onClick={() => loadConv(conv._id)}
+                    style={{
+                      width: "100%", padding: "10px 14px",
+                      background: convId === conv._id ? "#f5f3ff" : "transparent",
+                      border: "none", cursor: "pointer", textAlign: "left",
+                      display: "flex", alignItems: "flex-start", gap: 10,
+                      borderBottom: "1px solid #f9fafb",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#1f1535", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
+                        {conv.title}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                        {formatDate(conv.updatedAt)}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteConv(conv._id, e)}
+                      style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#d1d5db" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.color = "#ef4444"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#d1d5db"; }}
+                    >
+                      <Trash2 style={{ width: 13, height: 13 }} />
+                    </button>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Camera overlay ─── */}
+      <AnimatePresence>
+        {showCamera && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, zIndex: 50, backgroundColor: "#000", display: "flex", flexDirection: "column" }}
+          >
+            {/* Video feed */}
+            <div style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+            </div>
+
+            {/* Controls bar */}
+            <div style={{
+              flexShrink: 0,
+              backgroundColor: "rgba(0,0,0,0.85)",
+              paddingTop: 20,
+              paddingBottom: 40,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 40,
+            }}>
+              {/* Cancel */}
+              <button
+                onClick={closeCamera}
+                style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X style={{ width: 24, height: 24, color: "#fff" }} />
+              </button>
+
+              {/* Capture */}
+              <button
+                onClick={capturePhoto}
+                style={{ width: 72, height: 72, borderRadius: "50%", backgroundColor: "#fff", border: "4px solid rgba(255,255,255,0.5)", boxShadow: "0 0 0 3px rgba(255,255,255,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+              >
+                <Camera style={{ width: 28, height: 28, color: "#9333ea" }} />
+              </button>
+
+              {/* Flip */}
+              <button
+                onClick={flipCamera}
+                style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <RotateCcw style={{ width: 24, height: 24, color: "#fff" }} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-/* ══════════════════════ ChatBubble ═══════════════════════════ */
-function ChatBubble({ msg }: { msg: Msg }) {
-  const isUser = msg.role === "user";
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      className={`flex items-end gap-2 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-      {!isUser && (
-        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-400 rounded-xl flex items-center justify-center flex-shrink-0 mb-0.5">
-          <Sparkles className="w-4 h-4 text-white" />
-        </div>
-      )}
-      <div className={`max-w-[78%] space-y-2 ${isUser ? "items-end" : "items-start"} flex flex-col`}>
-        {msg.image && (
-          <div className={`rounded-2xl overflow-hidden shadow-md ${isUser ? "rounded-br-sm" : "rounded-bl-sm"}`}>
-            <img src={msg.image} alt="outfit" className="max-w-[220px] max-h-[280px] w-full object-cover" />
-          </div>
-        )}
-        {msg.text && (
-          <div className={`px-4 py-3 rounded-2xl shadow-sm ${isUser ? "bg-gradient-to-br from-purple-500 via-pink-400 to-blue-400 text-white rounded-br-sm" : "bg-white text-gray-800 border border-purple-100 rounded-bl-sm"}`}>
-            <FormattedText text={msg.text} />
-          </div>
-        )}
-        {msg.analysis && <AnalysisCard analysis={msg.analysis} />}
-      </div>
-    </motion.div>
-  );
-}
-
-function FormattedText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return (
-    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-      {parts.map((part, i) => part.startsWith("**") && part.endsWith("**") ? <strong key={i}>{part.slice(2, -2)}</strong> : <span key={i}>{part}</span>)}
-    </p>
-  );
-}
-
-function AnalysisCard({ analysis }: { analysis: Analysis }) {
-  return (
-    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
-      className="w-full max-w-xs bg-white rounded-2xl shadow-md border border-purple-100 overflow-hidden">
-      <div className={`px-4 py-3 flex items-center gap-3 ${analysis.suitable ? "bg-gradient-to-r from-green-400 to-emerald-500" : "bg-gradient-to-r from-orange-400 to-red-400"}`}>
-        <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-          {analysis.suitable ? <Check className="w-5 h-5 text-green-500" /> : <X className="w-5 h-5 text-red-400" />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-bold text-sm">{analysis.suitable ? "Rất phù hợp! 🎉" : "Chưa lý tưởng 🤔"}</p>
-          <p className="text-white/80 text-xs">{analysis.occasion}</p>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-white font-bold text-xl">{analysis.score}%</p>
-          <p className="text-white/70 text-[10px]">phù hợp</p>
-        </div>
-      </div>
-      <div className="px-4 py-2 bg-gray-50">
-        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <motion.div initial={{ width: 0 }} animate={{ width: `${analysis.score}%` }} transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-            className={`h-full rounded-full ${analysis.suitable ? "bg-green-400" : "bg-orange-400"}`} />
-        </div>
-      </div>
-      <div className="px-4 py-3">
-        <p className="text-xs text-gray-600 leading-relaxed">{analysis.feedback}</p>
-      </div>
-      <div className="px-4 pb-4 space-y-1.5">
-        <p className="text-xs font-bold text-gray-700 flex items-center gap-1"><ImageIcon className="w-3.5 h-3.5 text-purple-500" /> Gợi ý phối đồ</p>
-        {analysis.tips.map((tip, i) => (
-          <div key={i} className="flex items-start gap-2">
-            <div className="w-4 h-4 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-[9px] text-purple-600 font-bold">{i + 1}</span>
-            </div>
-            <p className="text-xs text-gray-600">{tip}</p>
-          </div>
-        ))}
-      </div>
-    </motion.div>
-  );
-}

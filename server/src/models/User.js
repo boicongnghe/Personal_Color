@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
 const userSchema = new mongoose.Schema({
   email:        { type: String, unique: true, sparse: true, lowercase: true, trim: true },
@@ -26,6 +27,9 @@ const userSchema = new mongoose.Schema({
     personPhotoMime:    String,
     personPhotoUpdated: Date,
   },
+  favoriteProductIds:    [{ type: Schema.Types.ObjectId, ref: 'Product' }],
+  resetPasswordToken:    { type: String, select: false },
+  resetPasswordExpires:  { type: Date,   select: false },
   isAdmin:  { type: Boolean, default: false },
   isBanned: { type: Boolean, default: false },
 }, { timestamps: true });

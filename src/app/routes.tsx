@@ -4,6 +4,11 @@ import { Welcome } from "./screens/Welcome";
 import { Login } from "./screens/Login";
 import { Signup } from "./screens/Signup";
 import { ForgotPassword } from "./screens/ForgotPassword";
+import { ResetPassword } from "./screens/ResetPassword";
+import { Terms } from "./screens/Terms";
+import { HelpSupport } from "./screens/HelpSupport";
+import { SupportChat } from "./screens/SupportChat";
+import { AdminSupport } from "./screens/admin/AdminSupport";
 import { Home } from "./screens/Home";
 import { FaceScan } from "./screens/FaceScan";
 import { AnalysisResult } from "./screens/AnalysisResult";
@@ -37,6 +42,9 @@ export const router = createBrowserRouter([
       { path: "login", Component: Login },
       { path: "signup", Component: Signup },
       { path: "forgot-password", Component: ForgotPassword },
+      { path: "reset-password", Component: ResetPassword },
+      { path: "terms", Component: Terms },
+      { path: "privacy", Component: Privacy },
       { path: "auth/callback", Component: AuthCallback },
       // ── Protected routes (require login) ──
       {
@@ -61,6 +69,8 @@ export const router = createBrowserRouter([
           { path: "style-others", Component: StyleOthers },
           { path: "settings", Component: Settings },
           { path: "privacy", Component: Privacy },
+          { path: "help", Component: HelpSupport },
+          { path: "support", Component: SupportChat },
           { path: "scan-history", Component: ScanHistory },
           { path: "add-clothing", Component: AddClothing },
         ],
@@ -73,6 +83,7 @@ export const router = createBrowserRouter([
           { path: "admin/users", Component: AdminUsers },
           { path: "admin/revenue", Component: AdminRevenue },
           { path: "admin/products", Component: AdminProducts },
+          { path: "admin/support", Component: AdminSupport },
         ],
       },
     ],

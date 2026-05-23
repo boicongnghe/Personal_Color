@@ -8,7 +8,8 @@ import {
   getWardrobe as apiGetWardrobe,
   deleteWardrobeItem as apiDeleteWardrobeItem,
   saveBodyProfile as apiSaveBodyProfile,
-  getBodyProfile as apiGetBodyProfile,
+  uploadAvatar as apiUploadAvatar,
+  toggleFavoriteApi,
 } from "../../api/api";
 import { COLOR_TYPES } from "../data/colorTypes";
 
@@ -94,11 +95,12 @@ type AppContextType = {
   addScanHistory: (scan: Omit<ScanHistoryItem, "id">) => void;
   deleteScanHistory: (id: string) => void;
   loadScanHistory: () => Promise<void>;
-  favoriteOutfitIds: Set<number>;
-  toggleFavoriteOutfit: (id: number) => void;
+  favoriteOutfitIds: Set<string>;
+  toggleFavoriteOutfit: (id: string) => void;
   lastScanResultId: string | null;
   setLastScanResultId: (id: string | null) => void;
   saveBodyProfile: (data: { gender: 'female' | 'male'; height?: number; weight?: number; bust?: number; waist?: number; hips?: number; age?: string | number; bodyShape?: string; budget?: string }) => Promise<{ success: boolean; bodyType?: string; label?: string; emoji?: string; description?: string; characteristics?: string[]; tips?: string }>;
+  uploadAvatar: (file: File) => Promise<{ success: boolean; avatarUrl?: string }>;
 };
 
 const translations = {
@@ -548,11 +550,12 @@ const defaultContextValue: AppContextType = {
   addScanHistory: () => {},
   deleteScanHistory: () => {},
   loadScanHistory: () => Promise.resolve(),
-  favoriteOutfitIds: new Set(),
+  favoriteOutfitIds: new Set<string>(),
   toggleFavoriteOutfit: () => {},
   lastScanResultId: null,
   setLastScanResultId: () => {},
   saveBodyProfile: () => Promise.resolve({ success: false }),
+  uploadAvatar: () => Promise.resolve({ success: false }),
 };
 
 const AppContext = createContext<AppContextType>(defaultContextValue);
@@ -606,14 +609,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     apiDeleteScan(id).catch(() => {});
   };
 
-  const [favoriteOutfitIds, setFavoriteOutfitIds] = useState<Set<number>>(new Set());
+  const [favoriteOutfitIds, setFavoriteOutfitIds] = useState<Set<string>>(new Set());
 
-  const toggleFavoriteOutfit = (id: number) => {
+  const toggleFavoriteOutfit = (id: string) => {
+    // Optimistic update
     setFavoriteOutfitIds((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+    // Persist to backend
+    toggleFavoriteApi(id)
+      .then((res) => {
+        const ids: string[] = res.data.data?.favoriteProductIds ?? [];
+        setFavoriteOutfitIds(new Set(ids));
+      })
+      .catch(() => {
+        // Revert on failure
+        setFavoriteOutfitIds((prev) => {
+          const next = new Set(prev);
+          next.has(id) ? next.delete(id) : next.add(id);
+          return next;
+        });
+      });
   };
 
   const saveBodyProfile = async (data: { gender: 'female' | 'male'; height?: number; weight?: number; bust?: number; waist?: number; hips?: number; age?: string | number; bodyShape?: string; budget?: string }): Promise<{ success: boolean; bodyType?: string; label?: string; emoji?: string; description?: string; characteristics?: string[]; tips?: string }> => {
@@ -627,7 +645,63 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const uploadAvatar = async (file: File): Promise<{ success: boolean; avatarUrl?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await apiUploadAvatar(formData);
+      const { avatarUrl } = res.data.data;
+      const fullUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${avatarUrl}`;
+      setUser((prev: User) => ({ ...prev, avatar: fullUrl }));
+      return { success: true, avatarUrl: fullUrl };
+    } catch {
+      return { success: false };
+    }
+  };
+
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  // Shared: apply full user data from getMe response and load related lists
+  const applyGetMeData = (u: Record<string, any>) => {
+    const rawAvatar = u.avatarUrl;
+    const avatar = rawAvatar
+      ? (rawAvatar.startsWith('http') ? rawAvatar : `${API_BASE}${rawAvatar}`)
+      : null;
+    setIsLoggedIn(true);
+    setUser((prev: User) => ({
+      ...prev,
+      name: u.displayName || u.email,
+      email: u.email,
+      avatar,
+      role: u.isAdmin ? "admin" as UserRole : "user" as UserRole,
+      isPremium: u.subscriptionTier === "premium",
+      bodyProfile: u.bodyProfile ?? prev.bodyProfile,
+    }));
+    // Load favorites
+    const favIds: string[] = u.favoriteProductIds ?? [];
+    setFavoriteOutfitIds(new Set(favIds));
+    // Load wardrobe
+    apiGetWardrobe()
+      .then((r) => {
+        const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; imageUrl?: string }> =
+          r.data.data?.items || [];
+        setWardrobeList(apiItems.map((item) => ({
+          id: item._id,
+          name: item.name,
+          category: CATEGORY_MAP[item.category] || item.category,
+          match: 90,
+          occasions: item.seasons?.length
+            ? [item.seasons[0].split("-")[0] === "spring" || item.seasons[0].split("-")[0] === "summer" ? "Thường ngày" : "Công sở"]
+            : ["Thường ngày"],
+          image: item.imageUrl || FALLBACK_IMAGE,
+        })));
+      })
+      .catch(() => {});
+    // Load scan history
+    apiGetScanHistory()
+      .then((r) => setScanHistory(buildScanItems(r.data.data?.scans || [])))
+      .catch(() => {});
+  };
 
   const buildScanItems = (apiScans: Array<{ _id: string; season: string; scanDate: string; photoUrl?: string }>): ScanHistoryItem[] =>
     apiScans.map((scan) => {
@@ -678,66 +752,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const token = localStorage.getItem("clarity_token");
     if (!token) { setAuthLoading(false); return; }
     getMe()
-      .then((res: { data: { data: { displayName?: string; email: string; subscriptionTier?: string } } }) => {
-        const u = res.data.data;
-        setIsLoggedIn(true);
-        setUser((prev: User) => ({
-          ...prev,
-          name: u.displayName || u.email,
-          email: u.email,
-          role: (u as any).isAdmin ? "admin" as UserRole : "user" as UserRole,
-          isPremium: u.subscriptionTier === "premium",
-          bodyProfile: (u as any).bodyProfile ?? prev.bodyProfile,
-        }));
-        // Load persisted data after successful auth
-        apiGetScanHistory()
-          .then((r) => setScanHistory(buildScanItems(r.data.data?.scans || [])))
-          .catch(() => {});
-        apiGetWardrobe()
-          .then((r) => {
-            const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; imageUrl?: string }> =
-              r.data.data?.items || [];
-            setWardrobeList(apiItems.map((item) => ({
-              id: item._id,
-              name: item.name,
-              category: CATEGORY_MAP[item.category] || item.category,
-              match: 90,
-              occasions: item.seasons?.length
-                ? [item.seasons[0].split("-")[0] === "spring" || item.seasons[0].split("-")[0] === "summer" ? "Thường ngày" : "Công sở"]
-                : ["Thường ngày"],
-              image: item.imageUrl || FALLBACK_IMAGE,
-            })));
-          })
-          .catch(() => {});
-        apiGetBodyProfile()
-          .then((r) => {
-            const bp = r.data.data?.bodyProfile;
-            if (bp) setUser((prev: User) => ({ ...prev, bodyProfile: bp }));
-          })
-          .catch(() => {});
-      })
-      .catch(() => {
-        localStorage.removeItem("clarity_token");
-      })
-      .finally(() => {
-        setAuthLoading(false);
-      });
+      .then((res) => { applyGetMeData(res.data.data); })
+      .catch(() => { localStorage.removeItem("clarity_token"); })
+      .finally(() => { setAuthLoading(false); });
   }, []);
 
   const loginWithToken = async (token: string): Promise<{ success: boolean }> => {
     try {
       localStorage.setItem("clarity_token", token);
       const res = await getMe();
-      const u = res.data.data;
-      setIsLoggedIn(true);
-      setUser((prev: User) => ({
-        ...prev,
-        name: u.displayName || u.email,
-        email: u.email,
-        role: (u as any).isAdmin ? "admin" as UserRole : "user" as UserRole,
-        isPremium: u.subscriptionTier === "premium",
-        bodyProfile: (u as any).bodyProfile ?? prev.bodyProfile,
-      }));
+      applyGetMeData(res.data.data);
       return { success: true };
     } catch {
       localStorage.removeItem("clarity_token");
@@ -748,26 +772,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string): Promise<{ success: boolean; role: UserRole | null; message: string }> => {
     try {
       const res = await apiLogin(email, password);
-      const { token, user: u } = res.data.data;
+      const { token } = res.data.data;
       localStorage.setItem("clarity_token", token);
-      setIsLoggedIn(true);
-      setUser((prev: User) => ({
-        ...prev,
-        name: u.displayName || u.email,
-        email: u.email,
-        role: (u as any).isAdmin ? "admin" as UserRole : "user" as UserRole,
-        isPremium: u.subscriptionTier === "premium",
-      }));
-      // Load body profile in background so RequireProfile gate works immediately
-      apiGetBodyProfile()
-        .then((r) => {
-          const bp = r.data.data?.bodyProfile;
-          if (bp) setUser((prev: User) => ({ ...prev, bodyProfile: bp }));
-        })
-        .catch(() => {});
-      const role: UserRole = (u as any).isAdmin ? "admin" : "user";
+      const meRes = await getMe();
+      const u = meRes.data.data;
+      applyGetMeData(u);
+      const role: UserRole = u.isAdmin ? "admin" : "user";
       return { success: true, role, message: "Đăng nhập thành công" };
     } catch (err: unknown) {
+      localStorage.removeItem("clarity_token");
       const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
         "Email hoặc mật khẩu không đúng";
@@ -834,6 +847,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       role: "user",
     });
     setWardrobeList([]);
+    setFavoriteOutfitIds(new Set());
+    setScanHistory([]);
   };
 
   return (
@@ -843,7 +858,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       wardrobeList, addWardrobeItem, deleteWardrobeItem, scanHistory, addScanHistory, deleteScanHistory, loadScanHistory,
       favoriteOutfitIds, toggleFavoriteOutfit,
       lastScanResultId, setLastScanResultId,
-      saveBodyProfile
+      saveBodyProfile, uploadAvatar
     }}>
       {children}
     </AppContext.Provider>
