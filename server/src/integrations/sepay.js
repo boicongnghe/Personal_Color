@@ -31,7 +31,7 @@ const PLANS = {
 function createCheckout({ userId, plan = '1m' }) {
   const client         = getClient();
   const selectedPlan   = PLANS[plan] ?? PLANS['1m'];
-  const orderInvoice   = `CLARITY_${userId.toString().slice(-6).toUpperCase()}_${Date.now()}`;
+  const orderInvoice = `CLARITY${userId.toString().slice(-6).toUpperCase()}${Date.now()}`;
   const checkoutURL    = client.checkout.initCheckoutUrl();
   const fields         = client.checkout.initOneTimePaymentFields({
     payment_method:       'BANK_TRANSFER',
