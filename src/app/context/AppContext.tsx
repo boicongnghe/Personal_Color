@@ -53,7 +53,6 @@ export type WardrobeItem = {
   id: number | string;
   name: string;
   category: string;
-  match: number;
   occasions: string[];
   image: string;
 };
@@ -76,6 +75,7 @@ export type BankInfo = {
 type AppContextType = {
   user: User;
   updateUser: (data: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
   isLoggedIn: boolean;
   authLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; role: UserRole | null; message: string }>;
@@ -526,6 +526,7 @@ const defaultContextValue: AppContextType = {
     role: "user",
   },
   updateUser: () => {},
+  refreshUser: () => Promise.resolve(),
   isLoggedIn: false,
   authLoading: true,
   login: () => Promise.resolve({ success: false, role: null, message: "" }),
@@ -683,15 +684,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Load wardrobe
     apiGetWardrobe()
       .then((r) => {
-        const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; imageUrl?: string }> =
+        const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; occasions?: string[]; imageUrl?: string }> =
           r.data.data?.items || [];
         setWardrobeList(apiItems.map((item) => ({
           id: item._id,
           name: item.name,
           category: CATEGORY_MAP[item.category] || item.category,
-          match: 90,
-          occasions: item.seasons?.length
-            ? [item.seasons[0].split("-")[0] === "spring" || item.seasons[0].split("-")[0] === "summer" ? "Thường ngày" : "Công sở"]
+          occasions: Array.isArray(item.occasions) && item.occasions.length > 0
+            ? item.occasions
             : ["Thường ngày"],
           image: item.imageUrl || FALLBACK_IMAGE,
         })));
@@ -735,6 +735,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUser = (data: Partial<User>) => {
     setUser((prev: User) => ({ ...prev, ...data }));
+  };
+
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const res = await getMe();
+      applyGetMeData(res.data.data);
+    } catch {
+      // silent — keep existing state if refresh fails
+    }
   };
 
   const updateBankInfo = (data: Partial<BankInfo>) => {
@@ -813,17 +822,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const loadWardrobe = async (): Promise<void> => {
     try {
       const res = await apiGetWardrobe();
-      const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; imageUrl?: string }> =
+      const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; occasions?: string[]; imageUrl?: string }> =
         res.data.data?.items || [];
       const transformed: WardrobeItem[] = apiItems.map((item) => ({
         id: item._id,
         name: item.name,
         category: CATEGORY_MAP[item.category] || item.category,
-        match: 90,
-        occasions: item.seasons && item.seasons.length > 0
-          ? [item.seasons[0].split("-")[0] === "spring" || item.seasons[0].split("-")[0] === "summer"
-              ? "Thường ngày"
-              : "Công sở"]
+        occasions: Array.isArray(item.occasions) && item.occasions.length > 0
+          ? item.occasions
           : ["Thường ngày"],
         image: item.imageUrl || FALLBACK_IMAGE,
       }));
@@ -853,7 +859,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AppContext.Provider value={{
-      user, updateUser, isLoggedIn, authLoading, login, loginWithToken, registerUser, loadWardrobe, logout,
+      user, updateUser, refreshUser, isLoggedIn, authLoading, login, loginWithToken, registerUser, loadWardrobe, logout,
       language, setLanguage, t, bankInfo, updateBankInfo,
       wardrobeList, addWardrobeItem, deleteWardrobeItem, scanHistory, addScanHistory, deleteScanHistory, loadScanHistory,
       favoriteOutfitIds, toggleFavoriteOutfit,

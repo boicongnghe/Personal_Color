@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { ArrowLeft, Search, Crown, Users, Shield, Ban } from "lucide-react";
+import logoUrl from "../../../assets/logo.png";
 import { useState, useEffect, useMemo } from "react";
 import { getAllUsersAdmin, updateUserTierAdmin, banUserAdmin } from "../../../api/api";
 
@@ -140,13 +141,16 @@ export function AdminUsers() {
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-gray-900">Quản lý người dùng</h1>
-            {!loading && (
-              <p className="text-xs text-gray-400">
-                {users.length} tài khoản · {premiumCount} Premium · {bannedCount} Đã khóa
-              </p>
-            )}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <img src={logoUrl} alt="Clarity" className="h-7 w-auto flex-shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Người dùng</span>
+              {!loading && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {users.length} tài khoản · {premiumCount} Premium · {bannedCount} Đã khóa
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

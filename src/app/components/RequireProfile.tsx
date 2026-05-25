@@ -63,7 +63,7 @@ export function RequireProfile() {
 
       {/* CTA */}
       <button
-        onClick={() => navigate("/profile")}
+        onClick={() => navigate("/profile?openBodyPanel=1&returnTo=/scan")}
         className="w-full max-w-xs py-4 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
       >
         Cá nhân hóa ngay

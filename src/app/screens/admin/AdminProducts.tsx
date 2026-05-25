@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { ArrowLeft, Plus, Trash2, Edit2, ExternalLink, Package, Search, Link2, Tag, LayoutGrid } from "lucide-react";
+import logoUrl from "../../../assets/logo.png";
 import { useState, useEffect, useRef } from "react";
 import {
   previewProduct, createProduct, getAllProducts,
@@ -267,11 +268,14 @@ export function AdminProducts() {
           <button onClick={goBack} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-gray-900 truncate">
-              {step==="list"?"Sản phẩm Affiliate":step==="add"?"Thêm sản phẩm mới":"Chỉnh sửa sản phẩm"}
-            </h1>
-            {step==="list" && <p className="text-xs text-gray-400">{products.length} sản phẩm</p>}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <img src={logoUrl} alt="Clarity" className="h-7 w-auto flex-shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                {step==="list"?"Sản phẩm":step==="add"?"Thêm mới":"Chỉnh sửa"}
+              </span>
+              {step==="list" && <p className="text-xs text-gray-400 mt-0.5">{products.length} sản phẩm</p>}
+            </div>
           </div>
           {step==="list" && (
             <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-700 transition-colors flex-shrink-0">

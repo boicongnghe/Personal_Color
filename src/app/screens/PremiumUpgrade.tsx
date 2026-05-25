@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router";
 import { ArrowLeft, Crown, Check, Sparkles, Camera, Palette, TrendingUp, Zap, Star } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
-import { createUpgradePayment, confirmPayment as apiConfirmPayment } from "../../api/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { createUpgradePayment, checkPaymentStatus } from "../../api/api";
 
 const PLANS = [
   {
@@ -70,12 +70,19 @@ type QRData = {
   amount: number;
   duration: number;
   label: string;
-  bankName: string;
-  accountNumber: string;
-  accountOwner: string;
-  transferNote: string;
-  orderId: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountOwner?: string;
+  transferNote?: string;
+  orderId?: string;
+  // SePay fields
+  orderInvoice?: string;
+  checkoutURL?: string;
+  fields?: Record<string, string>;
+  expiresAt?: string;
 };
+
+type PayStatus = 'idle' | 'pending' | 'success' | 'expired';
 
 export function PremiumUpgrade() {
   const navigate = useNavigate();
@@ -83,8 +90,67 @@ export function PremiumUpgrade() {
   const [selectedPlan, setSelectedPlan] = useState("3m");
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<QRData | null>(null);
-  const [step, setStep] = useState<'plan' | 'qr' | 'confirming' | 'done'>('plan');
-  const [checking, setChecking] = useState(false);
+
+  // SePay auto-polling state
+  const [orderData, setOrderData] = useState<QRData | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(600);
+  const [payStatus, setPayStatus] = useState<PayStatus>('idle');
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (pollRef.current)  clearInterval(pollRef.current);
+    };
+  }, []);
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  };
+
+  const startCountdown = (expiresAt?: string) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const target = expiresAt ? new Date(expiresAt).getTime() : Date.now() + 600_000;
+    timerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.round((target - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerRef.current!);
+        if (pollRef.current) clearInterval(pollRef.current!);
+        setPayStatus('expired');
+      }
+    }, 1000);
+  };
+
+  const startPolling = (orderInvoice: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await checkPaymentStatus(orderInvoice);
+        const { status, expired } = res.data?.data ?? {};
+        if (status === 'active') {
+          clearInterval(pollRef.current!);
+          clearInterval(timerRef.current!);
+          setPayStatus('success');
+          updateUser({ isPremium: true });
+          setTimeout(() => {
+            setShowQR(false);
+            navigate("/home", { replace: true });
+          }, 800);
+        } else if (expired || status === 'expired') {
+          clearInterval(pollRef.current!);
+          clearInterval(timerRef.current!);
+          setPayStatus('expired');
+        }
+      } catch {
+        // network hiccup — keep polling
+      }
+    }, 2000);
+  };
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan)!;
 
@@ -92,31 +158,19 @@ export function PremiumUpgrade() {
     try {
       const res = await createUpgradePayment(selectedPlan);
       const data = res.data?.data as QRData;
+      setOrderData(data);
       setQrData(data);
-      setStep('qr');
+      setPayStatus('pending');
+      setSecondsLeft(600);
       setShowQR(true);
+      startCountdown(data.expiresAt);
+      const invoice = data.orderInvoice ?? data.orderId ?? '';
+      if (invoice) startPolling(invoice);
     } catch {
       setShowQR(true);
     }
   };
 
-  const onConfirmPaid = async () => {
-    if (!qrData) return;
-    setChecking(true);
-    setStep('confirming');
-    try {
-      await apiConfirmPayment(qrData.orderId);
-      updateUser({ isPremium: true });
-      setStep('done');
-      setShowQR(false);
-      alert(t("paymentSuccess"));
-      navigate("/premium-setup");
-    } catch {
-      setChecking(false);
-      setStep('qr');
-      alert("Chưa xác nhận được thanh toán. Vui lòng thử lại sau ít phút.");
-    }
-  };
 
   return (
     <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-12">
@@ -283,13 +337,35 @@ export function PremiumUpgrade() {
       </div>
 
       {/* QR Payment Dialog */}
-      <Dialog open={showQR} onOpenChange={setShowQR}>
+      <Dialog open={showQR} onOpenChange={(open) => { if (!open && payStatus !== 'success') setShowQR(false); }}>
         <DialogContent className="sm:max-w-md mx-4 rounded-3xl" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-center">{t("paymentTitle")}</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col items-center gap-4 py-2">
+          <div className="flex flex-col items-center gap-4 py-2 relative">
+            {/* Success overlay */}
+            {payStatus === 'success' && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 rounded-2xl gap-3">
+                <div className="text-5xl">✅</div>
+                <p className="text-lg font-bold text-green-600 text-center">Thanh toán thành công!<br />Đang nâng cấp...</p>
+              </div>
+            )}
+
+            {/* Expired overlay */}
+            {payStatus === 'expired' && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 rounded-2xl gap-3">
+                <div className="text-5xl">⏰</div>
+                <p className="text-base font-semibold text-red-500 text-center">Đã hết hạn, vui lòng tạo lại</p>
+                <button
+                  onClick={() => { setShowQR(false); setPayStatus('idle'); setOrderData(null); setQrData(null); }}
+                  className="px-5 py-2 bg-purple-500 text-white rounded-xl font-bold text-sm"
+                >
+                  Đóng
+                </button>
+              </div>
+            )}
+
             {/* Plan summary */}
             <div className="w-full bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl px-5 py-3 flex items-center justify-between">
               <div>
@@ -302,10 +378,25 @@ export function PremiumUpgrade() {
               </div>
             </div>
 
+            {/* Countdown timer */}
+            {payStatus === 'pending' && (
+              <div className="w-full flex items-center justify-center gap-2">
+                <span className="text-xs text-gray-500">Hết hạn sau:</span>
+                <span className={`font-mono font-bold text-sm ${secondsLeft <= 60 ? 'text-red-500' : 'text-purple-600'}`}>
+                  {formatTime(secondsLeft)}
+                </span>
+                <span className="text-xs text-gray-400 animate-pulse">• Đang chờ thanh toán...</span>
+              </div>
+            )}
+
             <p className="text-gray-500 text-sm text-center">{t("paymentDesc")}</p>
 
             <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-              <img src={qrData?.qrUrl} alt="QR Code" className="w-48 h-48 object-cover rounded-xl" />
+              <img
+                src={orderData?.qrUrl ?? qrData?.qrUrl}
+                alt="QR Code"
+                className="w-48 h-48 object-cover rounded-xl"
+              />
             </div>
 
             <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-2 text-sm">
@@ -323,24 +414,18 @@ export function PremiumUpgrade() {
               </div>
               <div className="flex justify-between border-t border-gray-200 pt-2 mt-1">
                 <span className="text-gray-500">Nội dung CK:</span>
-                <span className="font-bold text-purple-600">{qrData?.transferNote}</span>
+                <span className="font-bold text-purple-600">
+                  {qrData?.transferNote ?? orderData?.orderInvoice ?? qrData?.orderInvoice}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Số tiền:</span>
                 <span className="font-bold text-yellow-600">{activePlan.priceDisplay} VNĐ</span>
               </div>
             </div>
+
           </div>
 
-          <DialogFooter>
-            <button
-              onClick={onConfirmPaid}
-              disabled={checking}
-              className="w-full py-3 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-xl font-bold hover:shadow-lg transition-shadow disabled:opacity-70"
-            >
-              {step === 'confirming' ? 'Đang xác nhận...' : t("confirmPayment")}
-            </button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

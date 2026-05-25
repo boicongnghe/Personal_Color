@@ -28,6 +28,7 @@ import { Privacy } from "./screens/Privacy";
 import { ScanHistory } from "./screens/ScanHistory";
 import { AddClothing } from "./screens/AddClothing";
 import { AuthCallback } from "./screens/AuthCallback";
+import { UpgradeSuccess } from "./screens/UpgradeSuccess";
 import { AdminGuard } from "./components/AdminGuard";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireProfile } from "./components/RequireProfile";
@@ -73,6 +74,7 @@ export const router = createBrowserRouter([
           { path: "support", Component: SupportChat },
           { path: "scan-history", Component: ScanHistory },
           { path: "add-clothing", Component: AddClothing },
+          { path: "upgrade-success", Component: UpgradeSuccess },
         ],
       },
       // ── Admin routes (chỉ dành cho role "admin") ──

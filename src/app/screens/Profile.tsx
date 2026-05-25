@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router";
-import { useState, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router";
+import { useState, useRef, useEffect } from "react";
 import {
   Crown, Palette, Settings, LogOut, ChevronRight,
   Edit2, Camera, User as UserIcon, Ruler, Weight,
@@ -38,6 +38,7 @@ function calcBMI(h: string, w: string) {
 
 export function Profile() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, updateUser, language, setLanguage, t, wardrobeList, favoriteOutfitIds, saveBodyProfile, uploadAvatar, logout } = useAppContext();
   const isVi = language === "vi";
 
@@ -87,22 +88,40 @@ export function Profile() {
     setAvatarUploading(false);
   };
 
+  const [bodyFormError, setBodyFormError] = useState<string | null>(null);
+
   const handleSaveBody = async () => {
     const { gender, height, weight, bust, waist, hips, age, bodyShape, budget } = bodyForm;
+
+    // Validate — all fields required
+    const missing: string[] = [];
+    if (!height)    missing.push("Chiều cao");
+    if (!weight)    missing.push("Cân nặng");
+    if (!age)       missing.push("Tuổi");
+    if (!bust)      missing.push("Vòng 1");
+    if (!waist)     missing.push("Vòng 2");
+    if (!hips)      missing.push("Vòng 3");
+    if (!bodyShape) missing.push("Vóc dáng");
+    if (!budget)    missing.push("Ngân sách");
+
+    if (missing.length > 0) {
+      setBodyFormError(`Vui lòng điền đủ: ${missing.join(", ")}`);
+      return;
+    }
+    setBodyFormError(null);
     setBodyLoading(true);
 
-    const payload: Parameters<typeof saveBodyProfile>[0] = { gender };
-    const hasFullMeasurements = height && weight && bust && waist && hips;
-    if (hasFullMeasurements) {
-      payload.height = parseFloat(height);
-      payload.weight = parseFloat(weight);
-      payload.bust   = parseFloat(bust);
-      payload.waist  = parseFloat(waist);
-      payload.hips   = parseFloat(hips);
-    }
-    if (age)       payload.age       = age;
-    if (bodyShape) payload.bodyShape = bodyShape;
-    if (budget)    payload.budget    = budget;
+    const payload: Parameters<typeof saveBodyProfile>[0] = {
+      gender,
+      height:    parseFloat(height),
+      weight:    parseFloat(weight),
+      bust:      parseFloat(bust),
+      waist:     parseFloat(waist),
+      hips:      parseFloat(hips),
+      age,
+      bodyShape,
+      budget,
+    };
 
     const result = await saveBodyProfile(payload);
     setBodyLoading(false);
@@ -116,9 +135,18 @@ export function Profile() {
         characteristics: result.characteristics ?? [],
         tips:            result.tips         ?? '',
       });
-      return; // stay in panel to show result
+      return; // stay in panel to show result card, then user clicks "Xong"
     }
+    // Saved without body-type classification — close and optionally return
     setShowBodyPanel(false);
+    const returnTo = searchParams.get('returnTo');
+    if (returnTo) navigate(returnTo);
+  };
+
+  const handleBodyPanelDone = () => {
+    setShowBodyPanel(false);
+    const returnTo = searchParams.get('returnTo');
+    if (returnTo) navigate(returnTo);
   };
 
   const openBodyPanel = () => {
@@ -139,6 +167,14 @@ export function Profile() {
     } : null);
     setShowBodyPanel(true);
   };
+
+  // Auto-open body panel when navigated here with ?openBodyPanel=1
+  useEffect(() => {
+    if (searchParams.get('openBodyPanel') === '1') {
+      openBodyPanel();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ── Menu item type supports both path + action ── */
   type MenuItem = {
@@ -624,19 +660,26 @@ export function Profile() {
                 {bodyResult ? (
                   <div className="flex gap-3">
                     <button onClick={() => setBodyResult(null)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-2xl font-bold">Sửa lại</button>
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowBodyPanel(false)}
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={handleBodyPanelDone}
                       className="flex-1 py-3.5 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2">
                       <Check className="w-4 h-4" /> Xong
                     </motion.button>
                   </div>
                 ) : (
-                  <div className="flex gap-3">
-                    <button onClick={() => setShowBodyPanel(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-2xl font-bold">{t("cancel")}</button>
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={handleSaveBody} disabled={bodyLoading}
-                      className="flex-1 py-3.5 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2">
-                      {bodyLoading ? <span className="text-sm">Đang phân tích...</span> : <><Check className="w-4 h-4" /> Lưu thông tin</>}
-                    </motion.button>
-                  </div>
+                  <>
+                    {bodyFormError && (
+                      <div className="mb-3 px-4 py-3 bg-red-50 border border-red-100 rounded-2xl">
+                        <p className="text-sm text-red-600 font-medium">{bodyFormError}</p>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <button onClick={() => setShowBodyPanel(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-2xl font-bold">{t("cancel")}</button>
+                      <motion.button whileTap={{ scale: 0.97 }} onClick={handleSaveBody} disabled={bodyLoading}
+                        className="flex-1 py-3.5 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2">
+                        {bodyLoading ? <span className="text-sm">Đang phân tích...</span> : <><Check className="w-4 h-4" /> Lưu thông tin</>}
+                      </motion.button>
+                    </div>
+                  </>
                 )}
               </div>
             </motion.div>

@@ -42,7 +42,11 @@ export const deleteScan = (scanId) => api.delete(`/api/scans/${scanId}`);
 
 export const getWardrobe = () => api.get('/api/wardrobe');
 
-export const deleteWardrobeItem = (itemId) => api.delete(`/api/wardrobe/${itemId}`);
+export const deleteWardrobeItem  = (itemId)       => api.delete(`/api/wardrobe/${itemId}`);
+export const updateWardrobeItem = (itemId, data) =>
+  data instanceof FormData
+    ? api.patch(`/api/wardrobe/${itemId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+    : api.patch(`/api/wardrobe/${itemId}`, data);
 
 export const register = (email, password, displayName) =>
   api.post('/api/auth/register', { email, password, displayName });
@@ -60,6 +64,9 @@ export const getPlans = () => api.get('/api/subscription/plans');
 
 export const createUpgradePayment = (plan = '1m') =>
   api.post('/api/subscription/upgrade', { plan });
+
+export const checkPaymentStatus = (orderInvoice) =>
+  api.get(`/api/subscription/status/${orderInvoice}`);
 
 export const confirmPayment = (orderId) =>
   api.post('/api/subscription/confirm-payment', { orderId });
@@ -84,7 +91,18 @@ export const tryOnItem = (formData) =>
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
-export const checkPersonPhoto = () => api.get('/api/wardrobe/try-on/has-photo');
+export const tryOnReplicate = (personFile, clothingFile) => {
+  const formData = new FormData();
+  formData.append('person',   personFile);
+  formData.append('clothing', clothingFile);
+  return api.post('/api/wardrobe/try-on/replicate', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  });
+};
+
+export const checkPersonPhoto  = () => api.get('/api/wardrobe/try-on/has-photo');
+export const fetchPersonPhoto  = () => api.get('/api/wardrobe/try-on/person-photo');
 
 export const previewProduct    = (url)      => api.post('/api/products/preview', { url });
 export const createProduct     = (data)     => api.post('/api/products', data);
@@ -113,5 +131,7 @@ export const sendSupportMessage  = (message)       => api.post('/api/support', {
 export const getMySupportMessages = ()              => api.get('/api/support');
 export const getAllSupportMessages = ()             => api.get('/api/support/admin/all');
 export const replyToSupportMessage = (id, reply)   => api.patch(`/api/support/${id}/reply`, { reply });
+
+export const getAdminStats = () => api.get('/api/subscription/admin/stats');
 
 export default api;

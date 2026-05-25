@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, FolderOpen, Sparkles, RefreshCw, CheckCircle2, Tag, X } from "lucide-react";
+import { ArrowLeft, Camera, FolderOpen, Sparkles, RefreshCw, CheckCircle2, Tag, X, Plus, Check } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "../context/AppContext";
@@ -19,6 +19,35 @@ export function AddClothing() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [itemName, setItemName] = useState("");
+
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [customOccasions,  setCustomOccasions]  = useState<string[]>([]);
+  const [showCatInput,  setShowCatInput]  = useState(false);
+  const [showOccInput,  setShowOccInput]  = useState(false);
+  const [catInputText,  setCatInputText]  = useState("");
+  const [occInputText,  setOccInputText]  = useState("");
+
+  const addCustomCategory = () => {
+    const val = catInputText.trim();
+    if (val && !CATEGORIES.concat(customCategories).includes(val)) {
+      setCustomCategories(prev => [...prev, val]);
+    }
+    if (val) setSelectedCategory(val);
+    setCatInputText("");
+    setShowCatInput(false);
+  };
+
+  const addCustomOccasion = () => {
+    const val = occInputText.trim();
+    if (val && !OCCASIONS.concat(customOccasions).includes(val)) {
+      setCustomOccasions(prev => [...prev, val]);
+      setSelectedOccasions(prev => [...prev, val]);
+    } else if (val) {
+      setSelectedOccasions(prev => prev.includes(val) ? prev : [...prev, val]);
+    }
+    setOccInputText("");
+    setShowOccInput(false);
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef    = useRef<HTMLVideoElement>(null);
@@ -101,6 +130,7 @@ export function AddClothing() {
       const formData = new FormData();
       formData.append('name', itemName || 'Trang phục mới');
       formData.append('category', selectedCategory || 'Áo');
+      formData.append('occasions', JSON.stringify(selectedOccasions));
       if (selectedFile) formData.append('photo', selectedFile);
       await addWardrobeItemApi(formData);
       await loadWardrobe();
@@ -311,7 +341,7 @@ export function AddClothing() {
                   Danh mục
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((cat) => (
+                  {[...CATEGORIES, ...customCategories].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
@@ -324,6 +354,32 @@ export function AddClothing() {
                       {cat}
                     </button>
                   ))}
+                  {showCatInput ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={catInputText}
+                        onChange={e => setCatInputText(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addCustomCategory(); if (e.key === "Escape") { setShowCatInput(false); setCatInputText(""); } }}
+                        placeholder="Nhập danh mục..."
+                        className="w-32 px-3 py-1.5 text-sm rounded-full border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                      />
+                      <button onClick={addCustomCategory} className="w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center hover:bg-purple-600 transition-colors">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { setShowCatInput(false); setCatInputText(""); }} className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowCatInput(true)}
+                      className="w-8 h-8 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center hover:bg-purple-200 transition-colors border border-dashed border-purple-300"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -333,7 +389,7 @@ export function AddClothing() {
                   Dịp mặc (chọn nhiều)
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {OCCASIONS.map((occ) => {
+                  {[...OCCASIONS, ...customOccasions].map((occ) => {
                     const active = selectedOccasions.includes(occ);
                     return (
                       <button
@@ -349,17 +405,43 @@ export function AddClothing() {
                       </button>
                     );
                   })}
+                  {showOccInput ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={occInputText}
+                        onChange={e => setOccInputText(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addCustomOccasion(); if (e.key === "Escape") { setShowOccInput(false); setOccInputText(""); } }}
+                        placeholder="Nhập dịp mặc..."
+                        className="w-32 px-3 py-1.5 text-sm rounded-full border-2 border-blue-300 focus:outline-none focus:border-blue-500"
+                      />
+                      <button onClick={addCustomOccasion} className="w-7 h-7 rounded-full bg-blue-400 text-white flex items-center justify-center hover:bg-blue-500 transition-colors">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { setShowOccInput(false); setOccInputText(""); }} className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowOccInput(true)}
+                      className="w-8 h-8 rounded-full bg-blue-100 text-blue-400 flex items-center justify-center hover:bg-blue-200 transition-colors border border-dashed border-blue-300"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Analyze & Add button */}
+              {/* Add button */}
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAdd}
                 className="w-full py-4 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-shadow flex items-center justify-center gap-2 mt-2"
               >
                 <Sparkles className="w-5 h-5" />
-                Phân tích & Thêm vào tủ đồ
+                Thêm vào tủ đồ
               </motion.button>
             </motion.div>
           )}

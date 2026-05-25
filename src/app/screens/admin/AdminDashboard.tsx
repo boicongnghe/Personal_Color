@@ -1,197 +1,124 @@
 import { useNavigate } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Users,
-  DollarSign,
-  Sparkles,
-  Crown,
-  Menu,
-  Save,
-  LogOut,
-  Package,
-  MessageCircle,
+  Users, DollarSign, Sparkles, Crown,
+  LogOut, Package, MessageCircle, TrendingUp,
+  RefreshCw,
 } from "lucide-react";
+import logoUrl from "../../../assets/logo.png";
 import { useAppContext } from "../../context/AppContext";
+import { getAdminStats } from "../../../api/api";
 
-// ── Custom CSS Bar Chart ────────────────────────────────────────────────────
-function BarChartCustom({
-  data,
-  valueKey,
-  color,
-  formatValue,
-}: {
-  data: Record<string, any>[];
-  valueKey: string;
-  color: string;
-  formatValue: (v: number) => string;
-}) {
-  const max = Math.max(...data.map((d) => d[valueKey]));
-  const [hovered, setHovered] = useState<number | null>(null);
-  return (
-    <div className="flex items-end gap-2 h-48 w-full">
-      {data.map((d, i) => {
-        const pct = (d[valueKey] / max) * 100;
-        return (
-          <div key={d.month} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-            <div className="relative w-full flex justify-center">
-              {hovered === i && (
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
-                  {formatValue(d[valueKey])}
-                </div>
-              )}
-              <div
-                className="w-full rounded-t-lg transition-opacity cursor-pointer"
-                style={{ height: `${pct * 1.6}px`, backgroundColor: color, opacity: hovered === i ? 1 : 0.8 }}
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-              />
-            </div>
-            <span className="text-xs text-gray-500">{d.month}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
+/* ── Types ─────────────────────────────────────────────── */
+interface AdminStats {
+  totalUsers: number;
+  premiumUsers: number;
+  totalRevenue: number;
+  thisMonthRevenue: number;
+  totalScans: number;
+  growth: number;
+  conversionRate: number;
+  monthlyRevenue: { month: string; revenue: number; subscriptions: number }[];
+  userGrowth: { month: string; users: number }[];
+  colorDistribution: { season: string; count: number }[];
 }
 
-// ── Custom SVG Line Chart ───────────────────────────────────────────────────
-function LineChartCustom({
-  data,
-  valueKey,
-  color,
-  formatValue,
-}: {
-  data: Record<string, any>[];
-  valueKey: string;
-  color: string;
-  formatValue: (v: number) => string;
-}) {
-  const W = 400;
-  const H = 160;
-  const pad = { top: 16, right: 16, bottom: 28, left: 48 };
-  const innerW = W - pad.left - pad.right;
-  const innerH = H - pad.top - pad.bottom;
+/* ── Season colour map ─────────────────────────────────── */
+const SEASON_COLORS: Record<string, string> = {
+  "spring": "#F59E0B", "summer": "#A78BFA", "autumn": "#F97316", "winter": "#3B82F6",
+};
+function seasonColor(s: string) {
+  const key = Object.keys(SEASON_COLORS).find(k => s.toLowerCase().includes(k));
+  return key ? SEASON_COLORS[key] : "#9CA3AF";
+}
 
-  const values = data.map((d) => d[valueKey]);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+/* ── Custom SVG Line Chart ─────────────────────────────── */
+function LineChart({
+  data, valueKey, color, formatValue,
+}: { data: Record<string, any>[]; valueKey: string; color: string; formatValue: (v: number) => string }) {
+  const W = 400; const H = 150;
+  const pad = { top: 12, right: 12, bottom: 24, left: 44 };
+  const iW = W - pad.left - pad.right; const iH = H - pad.top - pad.bottom;
+  const vals = data.map(d => d[valueKey]);
+  const min = Math.min(...vals); const max = Math.max(...vals);
   const range = max - min || 1;
-
-  const toX = (i: number) => pad.left + (i / (data.length - 1)) * innerW;
-  const toY = (v: number) => pad.top + innerH - ((v - min) / range) * innerH;
-
-  const points = data.map((d, i) => `${toX(i)},${toY(d[valueKey])}`).join(" ");
-  const areaPoints = [
-    `${toX(0)},${pad.top + innerH}`,
-    ...data.map((d, i) => `${toX(i)},${toY(d[valueKey])}`),
-    `${toX(data.length - 1)},${pad.top + innerH}`,
-  ].join(" ");
-
-  const [hovered, setHovered] = useState<number | null>(null);
-
+  const toX = (i: number) => pad.left + (i / Math.max(data.length - 1, 1)) * iW;
+  const toY = (v: number) => pad.top + iH - ((v - min) / range) * iH;
+  const pts = data.map((d, i) => `${toX(i)},${toY(d[valueKey])}`).join(" ");
+  const area = [`${toX(0)},${pad.top + iH}`, ...data.map((d, i) => `${toX(i)},${toY(d[valueKey])}`), `${toX(data.length - 1)},${pad.top + iH}`].join(" ");
+  const [hov, setHov] = useState<number | null>(null);
   return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: 240 }}>
-        {/* Grid lines */}
-        {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-          const y = pad.top + innerH * (1 - t);
-          const val = min + range * t;
-          return (
-            <g key={`grid-${t}`}>
-              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="#E5E7EB" strokeWidth={1} />
-              <text x={pad.left - 6} y={y + 4} textAnchor="end" fontSize={9} fill="#9CA3AF">
-                {formatValue(val)}
-              </text>
-            </g>
-          );
-        })}
-        {/* Area fill */}
-        <polygon points={areaPoints} fill={color} fillOpacity={0.08} />
-        {/* Line */}
-        <polyline points={points} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-        {/* Dots + labels */}
-        {data.map((d, i) => (
-          <g key={`dot-${d.month}`}>
-            <circle
-              cx={toX(i)} cy={toY(d[valueKey])} r={hovered === i ? 6 : 4}
-              fill={color} stroke="white" strokeWidth={2}
-              style={{ cursor: "pointer" }}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-            />
-            {hovered === i && (
-              <g>
-                <rect x={toX(i) - 30} y={toY(d[valueKey]) - 22} width={60} height={16} rx={4} fill="#1F2937" />
-                <text x={toX(i)} y={toY(d[valueKey]) - 10} textAnchor="middle" fontSize={9} fill="white">
-                  {formatValue(d[valueKey])}
-                </text>
-              </g>
-            )}
-            <text x={toX(i)} y={H - 4} textAnchor="middle" fontSize={9} fill="#6B7280">{d.month}</text>
-          </g>
-        ))}
-      </svg>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: 220 }}>
+      {[0, 0.5, 1].map(t => {
+        const y = pad.top + iH * (1 - t);
+        return <g key={t}><line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="#F3F4F6" strokeWidth={1} /><text x={pad.left - 4} y={y + 4} textAnchor="end" fontSize={8} fill="#9CA3AF">{formatValue(min + range * t)}</text></g>;
+      })}
+      <polygon points={area} fill={color} fillOpacity={0.08} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      {data.map((d, i) => (
+        <g key={i} onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} style={{ cursor: "pointer" }}>
+          <circle cx={toX(i)} cy={toY(d[valueKey])} r={hov === i ? 6 : 4} fill={color} stroke="white" strokeWidth={2} />
+          {hov === i && <><rect x={toX(i) - 28} y={toY(d[valueKey]) - 22} width={56} height={16} rx={3} fill="#1F2937" /><text x={toX(i)} y={toY(d[valueKey]) - 10} textAnchor="middle" fontSize={8} fill="white">{formatValue(d[valueKey])}</text></>}
+          <text x={toX(i)} y={H - 4} textAnchor="middle" fontSize={8} fill="#6B7280">{d.month}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/* ── Custom CSS Bar Chart ──────────────────────────────── */
+function BarChart({
+  data, valueKey, color, formatValue,
+}: { data: Record<string, any>[]; valueKey: string; color: string; formatValue: (v: number) => string }) {
+  const max = Math.max(...data.map(d => d[valueKey]), 1);
+  const [hov, setHov] = useState<number | null>(null);
+  return (
+    <div className="flex items-end gap-1.5 h-40 w-full">
+      {data.map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+          <div className="relative w-full flex justify-center">
+            {hov === i && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-0.5 rounded whitespace-nowrap z-10">{formatValue(d[valueKey])}</div>}
+            <div className="w-full rounded-t-md transition-all cursor-pointer" style={{ height: `${(d[valueKey] / max) * 130}px`, backgroundColor: color, opacity: hov === i ? 1 : 0.75 }}
+              onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)} />
+          </div>
+          <span className="text-[10px] text-gray-500">{d.month}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ── Custom SVG Donut Chart ──────────────────────────────────────────────────
+/* ── Donut Chart ───────────────────────────────────────── */
 function DonutChart({ data }: { data: { name: string; value: number; fill: string }[] }) {
-  const total = data.reduce((s, d) => s + d.value, 0);
-  const R = 70;
-  const cx = 90;
-  const cy = 90;
-  const strokeWidth = 28;
-  const circumference = 2 * Math.PI * R;
-
+  const total = data.reduce((s, d) => s + d.value, 0) || 1;
+  const R = 65; const cx = 80; const cy = 80; const sw = 24;
+  const circ = 2 * Math.PI * R;
   let offset = 0;
-  const segments = data.map((d) => {
-    const pct = d.value / total;
-    const dash = pct * circumference;
-    const gap = circumference - dash;
-    const seg = { ...d, dash, gap, offset };
-    offset += dash;
-    return seg;
-  });
-
-  const [hovered, setHovered] = useState<string | null>(null);
-
+  const segs = data.map(d => { const dash = (d.value / total) * circ; const seg = { ...d, dash, gap: circ - dash, offset }; offset += dash; return seg; });
+  const [hov, setHov] = useState<string | null>(null);
   return (
-    <div className="flex items-center gap-6">
-      <svg width={180} height={180} viewBox="0 0 180 180">
-        <circle cx={cx} cy={cy} r={R} fill="none" stroke="#F3F4F6" strokeWidth={strokeWidth} />
-        {segments.map((seg) => (
-          <circle
-            key={seg.name}
-            cx={cx} cy={cy} r={R}
-            fill="none"
-            stroke={seg.fill}
-            strokeWidth={hovered === seg.name ? strokeWidth + 4 : strokeWidth}
-            strokeDasharray={`${seg.dash} ${seg.gap}`}
-            strokeDashoffset={-seg.offset + circumference / 4}
+    <div className="flex items-center gap-4">
+      <svg width={160} height={160} viewBox="0 0 160 160" className="flex-shrink-0">
+        <circle cx={cx} cy={cy} r={R} fill="none" stroke="#F3F4F6" strokeWidth={sw} />
+        {segs.map(s => (
+          <circle key={s.name} cx={cx} cy={cy} r={R} fill="none" stroke={s.fill}
+            strokeWidth={hov === s.name ? sw + 4 : sw}
+            strokeDasharray={`${s.dash} ${s.gap}`}
+            strokeDashoffset={-s.offset + circ / 4}
             style={{ cursor: "pointer", transition: "stroke-width 0.15s" }}
-            onMouseEnter={() => setHovered(seg.name)}
-            onMouseLeave={() => setHovered(null)}
-          />
+            onMouseEnter={() => setHov(s.name)} onMouseLeave={() => setHov(null)} />
         ))}
-        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={11} fill="#6B7280">Total</text>
-        <text x={cx} y={cy + 10} textAnchor="middle" fontSize={14} fill="#111827" fontWeight="bold">
-          {total.toLocaleString()}
-        </text>
+        <text x={cx} y={cy - 7} textAnchor="middle" fontSize={10} fill="#9CA3AF">Total</text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fontSize={15} fill="#111827" fontWeight="bold">{total.toLocaleString()}</text>
       </svg>
-      <div className="space-y-3 flex-1">
-        {data.map((d) => (
-          <div
-            key={d.name}
-            className="flex items-center justify-between gap-3 cursor-pointer"
-            onMouseEnter={() => setHovered(d.name)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.fill }} />
-              <span className={`text-sm ${hovered === d.name ? "font-semibold text-gray-900" : "text-gray-600"}`}>{d.name}</span>
+      <div className="space-y-2 flex-1 min-w-0">
+        {data.map(d => (
+          <div key={d.name} className="flex items-center justify-between gap-2 cursor-pointer" onMouseEnter={() => setHov(d.name)} onMouseLeave={() => setHov(null)}>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.fill }} />
+              <span className={`text-xs truncate ${hov === d.name ? "font-semibold text-gray-900" : "text-gray-500"}`}>{d.name}</span>
             </div>
-            <span className="text-sm font-medium text-gray-900">{d.value.toLocaleString()}</span>
+            <span className="text-xs font-bold text-gray-800 flex-shrink-0">{d.value.toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -199,211 +126,179 @@ function DonutChart({ data }: { data: { name: string; value: number; fill: strin
   );
 }
 
-// ── Main AdminDashboard ─────────────────────────────────────────────────────
+/* ── Skeleton loader ───────────────────────────────────── */
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 rounded-xl ${className ?? ""}`} />;
+}
+
+/* ══════════════════════════════════════════════════════════
+   AdminDashboard
+══════════════════════════════════════════════════════════ */
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const { bankInfo, updateBankInfo, t, logout } = useAppContext();
-  const [localBankInfo, setLocalBankInfo] = useState(bankInfo);
-  const [saved, setSaved] = useState(false);
+  const { logout } = useAppContext();
 
-  const stats = {
-    totalUsers: 12845,
-    premiumUsers: 2341,
-    monthlyRevenue: 117050000,
-    aiScans: 45632,
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const res = await getAdminStats();
+      setStats(res.data.data);
+    } catch (e: any) {
+      setError(e.response?.data?.error || "Lỗi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const revenueData = [
-    { month: "Jan", revenue: 85000000 },
-    { month: "Feb", revenue: 92000000 },
-    { month: "Mar", revenue: 98000000 },
-    { month: "Apr", revenue: 105000000 },
-    { month: "May", revenue: 110000000 },
-    { month: "Jun", revenue: 117050000 },
-  ];
+  useEffect(() => { load(); }, []);
 
-  const userGrowthData = [
-    { month: "Jan", users: 8500 },
-    { month: "Feb", users: 9200 },
-    { month: "Mar", users: 10100 },
-    { month: "Apr", users: 11000 },
-    { month: "May", users: 11900 },
-    { month: "Jun", users: 12845 },
-  ];
+  const donutData = (stats?.colorDistribution ?? []).map(c => ({
+    name: c.season,
+    value: c.count,
+    fill: seasonColor(c.season),
+  }));
 
-  const colorTypeDistribution = [
-    { name: "Warm Autumn", value: 3200, fill: "#D97642" },
-    { name: "Cool Summer", value: 2800, fill: "#A2D2FF" },
-    { name: "Warm Spring", value: 3400, fill: "#F4D35E" },
-    { name: "Cool Winter", value: 3445, fill: "#7B68EE" },
+  const NAV_ITEMS = [
+    { label: "Người dùng", icon: <Users className="w-4 h-4" />, path: "/admin/users", color: "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100" },
+    { label: "Doanh thu",  icon: <DollarSign className="w-4 h-4" />, path: "/admin/revenue", color: "text-green-600 border-green-200 bg-green-50 hover:bg-green-100" },
+    { label: "Sản phẩm",  icon: <Package className="w-4 h-4" />, path: "/admin/products", color: "text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100" },
+    { label: "Hỗ trợ",    icon: <MessageCircle className="w-4 h-4" />, path: "/admin/support", color: "text-teal-600 border-teal-200 bg-teal-50 hover:bg-teal-100" },
   ];
-
-  const handleSave = () => {
-    updateBankInfo(localBankInfo);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button className="lg:hidden">
-              <Menu className="w-6 h-6 text-gray-900" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500">Clarity Analytics</p>
-            </div>
+
+      {/* ── Header ─────────────────────────────────── */}
+      <div className="bg-white border-b border-gray-200 px-5 py-3.5 sticky top-0 z-10">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-2">
+            <img src={logoUrl} alt="Clarity" className="h-8 w-auto" />
+            <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Admin</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/admin/users")}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
-            >
-              <Users className="w-4 h-4" /> Người dùng
+          <div className="flex items-center gap-2">
+            <button onClick={load} disabled={loading}
+              className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-40">
+              <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${loading ? "animate-spin" : ""}`} />
             </button>
-            <button
-              onClick={() => navigate("/admin/revenue")}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
-            >
-              <DollarSign className="w-4 h-4" /> Doanh thu
-            </button>
-            <button
-              onClick={() => navigate("/admin/products")}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition-colors border border-purple-200"
-            >
-              <Package className="w-4 h-4" /> Sản phẩm
-            </button>
-            <button
-              onClick={() => navigate("/admin/support")}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-xl transition-colors border border-teal-200"
-            >
-              <MessageCircle className="w-4 h-4" /> Hỗ trợ
-            </button>
-            <button
-              onClick={() => { logout(); navigate("/login"); }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
-            >
-              <LogOut className="w-4 h-4" />
-              Đăng xuất
+            <button onClick={() => { logout(); navigate("/login"); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl border border-red-100 transition-colors">
+              <LogOut className="w-3.5 h-3.5" /> Đăng xuất
             </button>
           </div>
         </div>
       </div>
 
-      <div className="p-6 max-w-7xl mx-auto">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { icon: <Users className="w-6 h-6 text-blue-600" />, bg: "bg-blue-100", label: "Tổng người dùng", value: stats.totalUsers.toLocaleString(), badge: "+12%" },
-            { icon: <Crown className="w-6 h-6 text-yellow-600" />, bg: "bg-yellow-100", label: "Người dùng Premium", value: stats.premiumUsers.toLocaleString(), badge: "+18%" },
-            { icon: <DollarSign className="w-6 h-6 text-green-600" />, bg: "bg-green-100", label: "Doanh thu tháng", value: `₫${(stats.monthlyRevenue / 1000000).toFixed(1)}M`, badge: "+23%" },
-            { icon: <Sparkles className="w-6 h-6 text-purple-600" />, bg: "bg-purple-100", label: "Lượt quét AI", value: stats.aiScans.toLocaleString(), badge: "+31%" },
-          ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-11 h-11 ${s.bg} rounded-xl flex items-center justify-center`}>{s.icon}</div>
-                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">{s.badge}</span>
-              </div>
-              <p className="text-gray-500 text-xs mb-1">{s.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+      <div className="p-4 max-w-7xl mx-auto space-y-4">
+
+        {/* ── Quick nav ──────────────────────────────── */}
+        <div className="grid grid-cols-4 gap-2">
+          {NAV_ITEMS.map(n => (
+            <button key={n.path} onClick={() => navigate(n.path)}
+              className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-xs font-semibold transition-all ${n.color}`}>
+              {n.icon}
+              <span className="hidden sm:block">{n.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ── Error ──────────────────────────────────── */}
+        {error && (
+          <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError(null)} className="text-red-400 font-bold">✕</button>
+          </div>
+        )}
+
+        {/* ── Stats cards ────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {loading ? (
+            [0,1,2,3].map(i => <Skeleton key={i} className="h-28" />)
+          ) : [
+            { icon: <Users className="w-5 h-5" />, bg: "from-blue-400 to-blue-600", label: "Tổng người dùng", value: stats!.totalUsers.toLocaleString(), sub: `${stats!.conversionRate}% conversion` },
+            { icon: <Crown className="w-5 h-5" />, bg: "from-amber-400 to-orange-500", label: "Premium", value: stats!.premiumUsers.toLocaleString(), sub: `${stats!.conversionRate}% tỷ lệ` },
+            { icon: <DollarSign className="w-5 h-5" />, bg: "from-green-400 to-emerald-600", label: "Doanh thu tháng", value: `₫${(stats!.thisMonthRevenue / 1000000).toFixed(1)}M`, sub: stats!.growth >= 0 ? `+${stats!.growth}% so tháng trước` : `${stats!.growth}% so tháng trước` },
+            { icon: <Sparkles className="w-5 h-5" />, bg: "from-purple-400 to-pink-500", label: "Lượt quét AI", value: stats!.totalScans.toLocaleString(), sub: "Tổng tích lũy" },
+          ].map(s => (
+            <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm overflow-hidden relative">
+              <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full bg-gradient-to-br ${s.bg} opacity-10`} />
+              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.bg} flex items-center justify-center text-white mb-3`}>{s.icon}</div>
+              <p className="text-xs text-gray-400 mb-0.5">{s.label}</p>
+              <p className="text-xl font-black text-gray-900">{s.value}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{s.sub}</p>
             </div>
           ))}
         </div>
 
-        {/* Charts row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Revenue Line Chart */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        {/* ── Charts row ─────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Revenue trend */}
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-900">Xu hướng doanh thu</h2>
-              <button onClick={() => navigate("/admin/revenue")} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                Chi tiết →
-              </button>
+              <div>
+                <h2 className="font-bold text-gray-900 text-sm">Xu hướng doanh thu</h2>
+                <p className="text-xs text-gray-400">6 tháng gần nhất</p>
+              </div>
+              <button onClick={() => navigate("/admin/revenue")} className="text-xs text-blue-500 font-semibold hover:text-blue-600">Chi tiết →</button>
             </div>
-            <LineChartCustom
-              data={revenueData}
-              valueKey="revenue"
-              color="#3B82F6"
-              formatValue={(v) => `₫${(v / 1000000).toFixed(0)}M`}
-            />
+            {loading ? <Skeleton className="h-36" /> : (
+              <LineChart data={stats!.monthlyRevenue} valueKey="revenue" color="#3B82F6" formatValue={v => `₫${(v / 1000000).toFixed(0)}M`} />
+            )}
           </div>
 
-          {/* User Growth Bar Chart */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          {/* User growth */}
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-900">Tăng trưởng người dùng</h2>
-              <button onClick={() => navigate("/admin/users")} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                Chi tiết →
-              </button>
+              <div>
+                <h2 className="font-bold text-gray-900 text-sm">Người dùng mới</h2>
+                <p className="text-xs text-gray-400">Đăng ký theo tháng</p>
+              </div>
+              <button onClick={() => navigate("/admin/users")} className="text-xs text-blue-500 font-semibold hover:text-blue-600">Chi tiết →</button>
             </div>
-            <BarChartCustom
-              data={userGrowthData}
-              valueKey="users"
-              color="#8B5CF6"
-              formatValue={(v) => v.toLocaleString()}
-            />
+            {loading ? <Skeleton className="h-36" /> : (
+              <BarChart data={stats!.userGrowth} valueKey="users" color="#8B5CF6" formatValue={v => v.toLocaleString()} />
+            )}
           </div>
         </div>
 
-        {/* Color Type Distribution */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-          <h2 className="font-bold text-gray-900 mb-5">Phân bố kiểu màu sắc</h2>
-          <DonutChart data={colorTypeDistribution} />
-        </div>
-
-        {/* Bank Information Settings */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="font-bold text-gray-900 mb-5 flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-green-600" />
-            {t("updateBankInfo")}
-          </h2>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              {[
-                { label: "Tên ngân hàng", key: "bankName" as const },
-                { label: t("accountHolder"), key: "accountName" as const },
-                { label: t("bankAccount"), key: "accountNumber" as const },
-                { label: t("qrCodeUrl"), key: "qrCodeUrl" as const },
-              ].map((field) => (
-                <div key={field.key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
-                  <input
-                    type="text"
-                    value={localBankInfo[field.key]}
-                    onChange={(e) => setLocalBankInfo({ ...localBankInfo, [field.key]: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none text-sm"
-                  />
-                </div>
-              ))}
-
-              <button
-                onClick={handleSave}
-                className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-medium transition-colors ${
-                  saved ? "bg-green-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
-                }`}
-              >
-                <Save className="w-4 h-4" />
-                {saved ? "Đã lưu!" : t("saveSettings")}
-              </button>
+        {/* ── Color type distribution ─────────────────── */}
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-
-            <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50">
-              <p className="text-gray-500 text-sm mb-4 font-medium">Xem trước mã QR</p>
-              {localBankInfo.qrCodeUrl ? (
-                <img src={localBankInfo.qrCodeUrl} alt="QR Preview" className="w-48 h-48 object-cover rounded-xl shadow-sm" />
-              ) : (
-                <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <span className="text-gray-400 text-sm">Chưa có ảnh</span>
-                </div>
-              )}
+            <div>
+              <h2 className="font-bold text-gray-900 text-sm">Phân bố kiểu màu sắc</h2>
+              <p className="text-xs text-gray-400">Từ kết quả scan AI</p>
             </div>
           </div>
+          {loading ? <Skeleton className="h-40" /> :
+            donutData.length === 0
+              ? <p className="text-center text-gray-400 text-sm py-8">Chưa có dữ liệu scan</p>
+              : <DonutChart data={donutData} />
+          }
         </div>
+
+        {/* ── Growth summary ──────────────────────────── */}
+        {!loading && stats && (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: <TrendingUp className="w-4 h-4 text-green-500" />, label: "Tăng trưởng doanh thu", value: `${stats.growth >= 0 ? "+" : ""}${stats.growth}%`, color: stats.growth >= 0 ? "text-green-600" : "text-red-500" },
+              { icon: <DollarSign className="w-4 h-4 text-blue-500" />, label: "Tổng doanh thu", value: `₫${(stats.totalRevenue / 1000000).toFixed(1)}M`, color: "text-blue-600" },
+              { icon: <Crown className="w-4 h-4 text-amber-500" />, label: "TB / người dùng", value: `₫${(stats.avgPerUser / 1000).toFixed(0)}K`, color: "text-amber-600" },
+            ].map(s => (
+              <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
+                <div className="flex justify-center mb-2">{s.icon}</div>
+                <p className={`text-lg font-black ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );

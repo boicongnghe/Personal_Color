@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import {
   ArrowLeft, Camera, ImageIcon, Sparkles, History,
-  RefreshCw, CheckCircle2, Crown, Lock, Zap, Star, Gift,
+  RefreshCw, CheckCircle2, Crown, Lock, Star, Gift,
   CameraOff, ScanFace, X,
 } from "lucide-react";
 import { BottomNav } from "../components/BottomNav";
@@ -22,7 +22,6 @@ export function FaceScan() {
   const [cameraMode, setCameraMode] = useState<CameraMode>("idle");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [scanning, setScanning]           = useState(false);
-  const [showPaywall, setShowPaywall]     = useState(false);
   const [flashActive, setFlashActive]     = useState(false);
 
   const videoRef  = useRef<HTMLVideoElement>(null);
@@ -51,7 +50,7 @@ export function FaceScan() {
 
   /* ── Open Camera ─────────────────────────────────────────────────── */
   const openCamera = async () => {
-    if (isLocked) { setShowPaywall(true); return; }
+    if (isLocked) { navigate("/premium"); return; }
     setCameraMode("requesting");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -129,7 +128,7 @@ export function FaceScan() {
 
   /* ── Guard & analyze ────────────────────────────────────────────── */
   const guardedAnalyze = () => {
-    if (isLocked) { setShowPaywall(true); return; }
+    if (isLocked) { navigate("/premium"); return; }
     startAnalyze();
   };
 
@@ -158,7 +157,7 @@ export function FaceScan() {
       const errMsg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error || "";
       if (errMsg.toLowerCase().includes("limit") || errMsg.includes("SCAN_LIMIT")) {
-        setShowPaywall(true);
+        navigate("/premium");
       } else {
         alert(errMsg || "Phân tích thất bại. Vui lòng thử lại.");
       }
@@ -245,16 +244,6 @@ export function FaceScan() {
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Paywall */}
-      <AnimatePresence>
-        {showPaywall && (
-          <PaywallOverlay
-            onUpgrade={() => { setShowPaywall(false); navigate("/premium"); }}
-            onClose={() => setShowPaywall(false)}
-          />
-        )}
-      </AnimatePresence>
-
       {/* ── Header ── */}
       <div className="px-6 pt-12 pb-3 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
@@ -288,7 +277,7 @@ export function FaceScan() {
               <p className="text-white font-bold text-sm">Đã hết lượt miễn phí</p>
               <p className="text-white/80 text-xs">Nâng cấp Premium để quét không giới hạn</p>
             </div>
-            <button onClick={() => setShowPaywall(true)}
+            <button onClick={() => navigate("/premium")}
               className="bg-white text-amber-600 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-amber-50 transition-colors flex-shrink-0">
               Mở khoá
             </button>
@@ -355,7 +344,7 @@ export function FaceScan() {
 
                 {isLocked ? (
                   <button
-                    onClick={() => setShowPaywall(true)}
+                    onClick={() => navigate("/premium")}
                     className="flex items-center gap-2 bg-yellow-400 text-gray-900 font-bold px-8 py-3.5 rounded-2xl shadow-xl hover:bg-yellow-300 transition-colors"
                   >
                     <Lock className="w-5 h-5" />
@@ -644,7 +633,7 @@ export function FaceScan() {
 
             {isLocked && (
               <button
-                onClick={() => setShowPaywall(true)}
+                onClick={() => navigate("/premium")}
                 className="w-full py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2"
               >
                 <Crown className="w-5 h-5" />
@@ -663,77 +652,5 @@ export function FaceScan() {
 
       <BottomNav active="scan" />
     </div>
-  );
-}
-
-/* ═══════════ Paywall Overlay ═══════════ */
-function PaywallOverlay({ onUpgrade, onClose }: { onUpgrade: () => void; onClose: () => void }) {
-  const PERKS = [
-    "Quét khuôn mặt không giới hạn",
-    "Phân tích từ 12 nhóm tông màu chuẩn seasonal",
-    "Mỗi lần quét cho kết quả khác nhau, không lặp lại",
-    "Lịch sử quét lưu vĩnh viễn với hồ sơ đầy đủ",
-    "Tủ đồ AI + Trợ lý thông minh không giới hạn",
-  ];
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center">
-      <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-      <motion.div
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="relative w-full bg-white rounded-t-3xl px-6 pt-6 pb-10 shadow-2xl max-w-md mx-auto"
-      >
-        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
-        <div className="text-center mb-6">
-          <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }}
-            className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-            <Crown className="w-10 h-10 text-white" />
-          </motion.div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Hết lượt miễn phí rồi!</h2>
-          <p className="text-gray-500 text-sm">
-            Bạn đã dùng <span className="font-bold text-purple-600">1 lượt quét miễn phí</span>.<br />
-            Nâng cấp Premium để quét không giới hạn.
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 mb-5 border border-purple-100">
-          <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-3">Premium bao gồm:</p>
-          <div className="space-y-2.5">
-            {PERKS.map((perk, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <p className="text-sm text-gray-700">{perk}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2 mb-5">
-          {[
-            { label: "1 tháng", price: "50k" },
-            { label: "3 tháng", price: "135k", hot: true },
-            { label: "6 tháng", price: "240k" },
-          ].map((plan) => (
-            <div key={plan.label} className={`flex-1 rounded-2xl p-3 text-center border-2 ${plan.hot ? "border-purple-400 bg-gradient-to-b from-purple-50 to-pink-50" : "border-gray-200 bg-white"}`}>
-              {plan.hot && <p className="text-[10px] font-bold text-purple-600 mb-1">PHỔ BIẾN</p>}
-              <p className="font-bold text-gray-900 text-sm">{plan.price}</p>
-              <p className="text-xs text-gray-500">{plan.label}</p>
-            </div>
-          ))}
-        </div>
-        <motion.button whileTap={{ scale: 0.97 }} onClick={onUpgrade}
-          className="w-full py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-2xl font-bold text-lg shadow-xl flex items-center justify-center gap-2 mb-3">
-          <Zap className="w-5 h-5" />
-          Nâng cấp Premium ngay
-        </motion.button>
-        <button onClick={onClose} className="w-full py-3 text-gray-400 text-sm hover:text-gray-600 transition-colors">
-          Để sau
-        </button>
-      </motion.div>
-    </motion.div>
   );
 }

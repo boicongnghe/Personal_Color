@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const itemSchema = new mongoose.Schema({
   name: String,
   color: String,
-  category: { type: String, enum: ['top', 'bottom', 'shoes', 'accessory'] },
+  category: { type: String, default: 'Áo' },
   imageUrl: String,
   addedAt: { type: Date, default: Date.now },
   seasons: [String],
+  occasions: [String],
   clothingPhotoBuffer: Buffer,
   clothingPhotoMime:   String,
 });
