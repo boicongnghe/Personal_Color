@@ -1,13 +1,39 @@
 import { useState } from 'react';
 import {
   savePersonPhoto as apiSavePersonPhoto,
-  tryOnItem as apiTryOnItem,
+  tryOnItem      as apiTryOnItem,
+  fetchPersonPhoto as apiFetchPersonPhoto,
 } from '../../api/api';
 
 export interface TryOnResult {
   resultImage: string;
-  assessment: string | null;
+  resultUrl?: string;
   item: { name: string; color: string; category: string };
+}
+
+export interface TryOnHistoryEntry {
+  id: string;
+  date: string;
+  itemName: string;
+  itemCategory: string;
+  clothingImage: string | null;
+  resultImage: string;
+}
+
+export interface ItemMeta {
+  name: string;
+  category: string;
+  image?: string | null;
+}
+
+const MAX_HISTORY = 5;
+
+function historyKey(userId: string)  { return `clarity_tryon_history_${userId}`; }
+function photoFlagKey(userId: string) { return `clarity_has_model_photo_${userId}`; }
+
+function loadHistory(userId: string): TryOnHistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(historyKey(userId)) ?? '[]'); }
+  catch { return []; }
 }
 
 interface TryOnReturn {
@@ -16,19 +42,43 @@ interface TryOnReturn {
   error: string | null;
   progress: string;
   hasPersonPhoto: boolean;
+  personPhotoUrl: string | null;
+  photoLoading: boolean;
+  history: TryOnHistoryEntry[];
+  loadPersonPhoto: () => Promise<void>;
   uploadPersonPhoto: (file: File) => Promise<{ success: boolean }>;
-  tryOn: (itemId: string) => Promise<{ success: boolean; needsPhoto?: boolean }>;
+  tryOn: (itemId: string, meta?: ItemMeta) => Promise<{ success: boolean; needsPhoto?: boolean }>;
   reset: () => void;
+  clearHistory: () => void;
+  deleteHistoryEntry: (id: string) => void;
 }
 
-export default function useTryOn(): TryOnReturn {
+export default function useTryOn(userId: string): TryOnReturn {
   const [loading,        setLoading]        = useState(false);
   const [result,         setResult]         = useState<TryOnResult | null>(null);
   const [error,          setError]          = useState<string | null>(null);
   const [progress,       setProgress]       = useState('');
   const [hasPersonPhoto, setHasPersonPhoto] = useState(
-    () => localStorage.getItem('clarity_has_model_photo') === 'true',
+    () => localStorage.getItem(photoFlagKey(userId)) === 'true',
   );
+  const [personPhotoUrl, setPersonPhotoUrl] = useState<string | null>(null);
+  const [photoLoading,   setPhotoLoading]   = useState(false);
+  const [history, setHistory] = useState<TryOnHistoryEntry[]>(() => loadHistory(userId));
+
+  const loadPersonPhoto = async () => {
+    setPhotoLoading(true);
+    try {
+      const res = await apiFetchPersonPhoto();
+      if (res.data.success) {
+        setPersonPhotoUrl(res.data.data.photo ?? null);
+        if (res.data.data.photo) {
+          localStorage.setItem(photoFlagKey(userId), 'true');
+          setHasPersonPhoto(true);
+        }
+      }
+    } catch {}
+    finally { setPhotoLoading(false); }
+  };
 
   const uploadPersonPhoto = async (file: File) => {
     setLoading(true);
@@ -37,8 +87,12 @@ export default function useTryOn(): TryOnReturn {
       const formData = new FormData();
       formData.append('photo', file);
       await apiSavePersonPhoto(formData);
-      localStorage.setItem('clarity_has_model_photo', 'true');
+      localStorage.setItem(photoFlagKey(userId), 'true');
       setHasPersonPhoto(true);
+      // Show preview immediately from the local file
+      const reader = new FileReader();
+      reader.onload = (e) => setPersonPhotoUrl(e.target?.result as string ?? null);
+      reader.readAsDataURL(file);
       return { success: true };
     } catch {
       setError('Không thể lưu ảnh mẫu. Vui lòng thử lại.');
@@ -48,15 +102,15 @@ export default function useTryOn(): TryOnReturn {
     }
   };
 
-  const tryOn = async (itemId: string) => {
+  const tryOn = async (itemId: string, meta?: ItemMeta) => {
     setLoading(true);
     setError(null);
     setResult(null);
 
     const steps = [
       'Đang tải ảnh lên...',
-      'Gemini đang phân tích trang phục...',
-      'Đang thử đồ lên ảnh của bạn...',
+      'AI đang phân tích trang phục...',
+      'IDM-VTON đang ghép đồ lên ảnh của bạn...',
       'Đang hoàn thiện hình ảnh...',
     ];
     let idx = 0;
@@ -71,7 +125,24 @@ export default function useTryOn(): TryOnReturn {
       formData.append('itemId', itemId);
       const res = await apiTryOnItem(formData);
       if (res.data.success) {
-        setResult(res.data.data);
+        const data = res.data.data as TryOnResult;
+        setResult(data);
+
+        // Save to localStorage history
+        const entry: TryOnHistoryEntry = {
+          id: Date.now().toString(),
+          date: new Date().toISOString(),
+          itemName:     data.item?.name     ?? meta?.name     ?? '',
+          itemCategory: data.item?.category ?? meta?.category ?? '',
+          clothingImage: meta?.image ?? null,
+          resultImage: data.resultImage,
+        };
+        setHistory(prev => {
+          const updated = [entry, ...prev].slice(0, MAX_HISTORY);
+          try { localStorage.setItem(historyKey(userId), JSON.stringify(updated)); } catch {}
+          return updated;
+        });
+
         return { success: true };
       }
       throw new Error(res.data.error || 'Lỗi không xác định');
@@ -81,6 +152,8 @@ export default function useTryOn(): TryOnReturn {
       const msg = serverError || 'Lỗi thử đồ, vui lòng thử lại';
       setError(msg);
       if (serverError === 'NO_PERSON_PHOTO') {
+        setHasPersonPhoto(false);
+        localStorage.removeItem(photoFlagKey(userId));
         return { success: false, needsPhoto: true };
       }
       return { success: false };
@@ -91,10 +164,24 @@ export default function useTryOn(): TryOnReturn {
     }
   };
 
-  const reset = () => {
-    setResult(null);
-    setError(null);
+  const reset = () => { setResult(null); setError(null); };
+
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem(historyKey(userId));
   };
 
-  return { loading, result, error, progress, hasPersonPhoto, uploadPersonPhoto, tryOn, reset };
+  const deleteHistoryEntry = (id: string) => {
+    setHistory(prev => {
+      const updated = prev.filter(e => e.id !== id);
+      try { localStorage.setItem(historyKey(userId), JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  return {
+    loading, result, error, progress,
+    hasPersonPhoto, personPhotoUrl, photoLoading,
+    history, loadPersonPhoto, uploadPersonPhoto, tryOn, reset, clearHistory, deleteHistoryEntry,
+  };
 }

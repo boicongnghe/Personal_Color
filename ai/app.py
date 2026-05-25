@@ -12,7 +12,7 @@ CORS(app, origins=['http://localhost:3001'])
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'ok': True, 'service': 'clarity-ai'})
+    return jsonify({'status': 'ok', 'service': 'clarity-ai', 'version': '1.0'})
 
 
 @app.route('/analyze', methods=['POST'])

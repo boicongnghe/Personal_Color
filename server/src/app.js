@@ -26,6 +26,7 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(passport.initialize());
 app.use(morgan('dev'));
 

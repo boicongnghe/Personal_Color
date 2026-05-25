@@ -1,8 +1,7 @@
-const axios   = require('axios');
-const { virtualTryOn } = require('../integrations/geminiTryOn');
+const axios        = require('axios');
+const { runTryOn } = require('../integrations/idmVton');
 const User     = require('../models/User');
 const Wardrobe = require('../models/Wardrobe');
-const Scan     = require('../models/Scan');
 
 // POST /api/wardrobe/try-on/save-photo
 const savePersonPhoto = async (req, res, next) => {
@@ -29,6 +28,26 @@ const hasPersonPhoto = async (req, res, next) => {
     const user = await User.findById(req.user._id).select('bodyProfile.personPhotoUpdated');
     const has  = !!(user?.bodyProfile?.personPhotoUpdated);
     return res.json({ success: true, data: { hasPhoto: has } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/wardrobe/try-on/person-photo
+const getPersonPhoto = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('bodyProfile.personPhotoBuffer bodyProfile.personPhotoMime bodyProfile.personPhotoUpdated');
+    const buf = user?.bodyProfile?.personPhotoBuffer;
+    if (!buf || buf.length === 0) {
+      return res.json({ success: true, data: { photo: null } });
+    }
+    const mime  = user.bodyProfile.personPhotoMime || 'image/jpeg';
+    const photo = `data:${mime};base64,${Buffer.from(buf).toString('base64')}`;
+    return res.json({
+      success: true,
+      data: { photo, updatedAt: user.bodyProfile.personPhotoUpdated },
+    });
   } catch (err) {
     next(err);
   }
@@ -84,35 +103,19 @@ const tryOnItem = async (req, res, next) => {
       clothingMime   = 'image/bmp';
     }
 
-    // 4. Get latest scan for season
-    const latestScan = await Scan.findOne({ userId }).sort({ scanDate: -1 });
-
-    // 5. Call Gemini
-    const { resultImageBase64, resultMime, assessment } = await virtualTryOn({
-      personImageBuffer:   Buffer.from(personBuffer),
+    // 4. Call IDM-VTON
+    const result = await runTryOn({
+      personImageBase64:   Buffer.from(personBuffer).toString('base64'),
+      clothingImageBase64: clothingBuffer.toString('base64'),
       personMime,
-      clothingImageBuffer: clothingBuffer,
       clothingMime,
-      clothingInfo: {
-        name:     item.name,
-        color:    item.color || '#808080',
-        category: item.category,
-        season:   latestScan?.season ?? null,
-      },
     });
-
-    if (!resultImageBase64) {
-      return res.status(422).json({
-        success: false,
-        error: 'Gemini không tạo được ảnh. Vui lòng thử lại hoặc dùng ảnh rõ hơn.',
-      });
-    }
 
     return res.json({
       success: true,
       data: {
-        resultImage: `data:${resultMime};base64,${resultImageBase64}`,
-        assessment,
+        resultImage: `data:${result.resultMime};base64,${result.resultBase64}`,
+        resultUrl:   result.resultUrl,
         item: { name: item.name, color: item.color, category: item.category },
       },
     });
@@ -148,4 +151,46 @@ function createColorImage(hex = '#CCCCCC') {
   return buf;
 }
 
-module.exports = { savePersonPhoto, hasPersonPhoto, tryOnItem };
+// POST /api/wardrobe/try-on/replicate
+const tryOnReplicate = async (req, res, next) => {
+  try {
+    if (!req.files?.person?.[0] || !req.files?.clothing?.[0]) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng cung cấp ảnh người và ảnh quần áo',
+      });
+    }
+
+    const personBuffer   = req.files.person[0].buffer;
+    const clothingBuffer = req.files.clothing[0].buffer;
+    const personMime     = req.files.person[0].mimetype;
+    const clothingMime   = req.files.clothing[0].mimetype;
+
+    console.log('🔄 Running IDM-VTON try-on...');
+
+    const result = await runTryOn({
+      personImageBase64:   personBuffer.toString('base64'),
+      clothingImageBase64: clothingBuffer.toString('base64'),
+      personMime,
+      clothingMime,
+    });
+
+    console.log('✅ Try-on complete:', result.resultUrl);
+
+    return res.json({
+      success: true,
+      data: {
+        resultImage: `data:${result.resultMime};base64,${result.resultBase64}`,
+        resultUrl:   result.resultUrl,
+      },
+    });
+  } catch (err) {
+    console.error('IDM-VTON error:', err.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Thử đồ thất bại: ' + err.message,
+    });
+  }
+};
+
+module.exports = { savePersonPhoto, hasPersonPhoto, getPersonPhoto, tryOnItem, tryOnReplicate };

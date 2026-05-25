@@ -43,7 +43,7 @@ export function Home() {
     },
     {
       icon: TrendingUp,
-      title: t("styleOthers"),
+      title: "Thử đồ AI",
       path: "/style-others",
       premium: true,
     },

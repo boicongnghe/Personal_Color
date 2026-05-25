@@ -54,4 +54,17 @@ const uploadAvatar = multer({
   },
 });
 
-module.exports = { upload, uploadWardrobe, uploadAvatar };
+// ── IDM-VTON try-on — 2 fields: person + clothing, memory storage ──
+const uploadTryOn = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) cb(null, true);
+    else cb(Object.assign(new Error('Chỉ chấp nhận ảnh JPG, PNG, WEBP'), { status: 400 }));
+  },
+}).fields([
+  { name: 'person',   maxCount: 1 },
+  { name: 'clothing', maxCount: 1 },
+]);
+
+module.exports = { upload, uploadWardrobe, uploadAvatar, uploadTryOn };

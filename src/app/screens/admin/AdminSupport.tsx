@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { ArrowLeft, MessageCircle, Clock, CheckCircle2, Send, Loader2, RefreshCw } from "lucide-react";
+import logoUrl from "../../../assets/logo.png";
 import { useState, useEffect } from "react";
 import { getAllSupportMessages, replyToSupportMessage } from "../../../api/api";
 
@@ -73,13 +74,16 @@ export function AdminSupport() {
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-6 h-6 text-gray-900" />
           </button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">Hỗ trợ người dùng</h1>
-            {pendingCount > 0 && (
-              <p className="text-xs text-amber-600 font-semibold mt-0.5">
-                {pendingCount} tin nhắn chờ phản hồi
-              </p>
-            )}
+          <div className="flex items-center gap-2 flex-1">
+            <img src={logoUrl} alt="Clarity" className="h-7 w-auto flex-shrink-0" />
+            <div>
+              <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Hỗ trợ</span>
+              {pendingCount > 0 && (
+                <p className="text-xs text-amber-600 font-semibold mt-0.5">
+                  {pendingCount} tin nhắn chờ phản hồi
+                </p>
+              )}
+            </div>
           </div>
           <button onClick={load} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100">
             <RefreshCw className="w-4 h-4 text-gray-500" />

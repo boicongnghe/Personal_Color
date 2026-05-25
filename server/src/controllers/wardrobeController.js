@@ -50,7 +50,7 @@ const addItem = async (req, res, next) => {
   try {
     const { name, imageUrl } = req.body;
     const color    = (req.body.color && HEX_RE.test(req.body.color)) ? req.body.color : '#808080';
-    const category = VI_CATEGORY_MAP[req.body.category] || (VALID_CATEGORIES.includes(req.body.category) ? req.body.category : 'top');
+    const category = (req.body.category || 'Áo').trim();
 
     if (!name) return res.status(400).json({ success: false, error: 'name là bắt buộc' });
 
@@ -60,7 +60,11 @@ const addItem = async (req, res, next) => {
       : (imageUrl || undefined);
 
     const seasons = tagSeasons(color);
-    const newItem = { name, color, category, seasons, ...(resolvedImageUrl ? { imageUrl: resolvedImageUrl } : {}) };
+    let occasions = [];
+    try { occasions = JSON.parse(req.body.occasions || '[]'); } catch { occasions = []; }
+    if (!Array.isArray(occasions)) occasions = [];
+
+    const newItem = { name, color, category, seasons, occasions, ...(resolvedImageUrl ? { imageUrl: resolvedImageUrl } : {}) };
 
     const wardrobe = await Wardrobe.findOneAndUpdate(
       { userId: req.user._id },
@@ -69,6 +73,40 @@ const addItem = async (req, res, next) => {
     );
     const added = wardrobe.items[wardrobe.items.length - 1];
     res.json({ success: true, data: { item: added } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateItem = async (req, res, next) => {
+  try {
+    const { name } = req.body;
+    const category  = req.body.category ? req.body.category.trim() : null;
+    let   occasions = req.body.occasions;
+    if (typeof occasions === 'string') {
+      try { occasions = JSON.parse(occasions); } catch { occasions = null; }
+    }
+
+    const BASE_URL = process.env.SERVER_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+    const resolvedImageUrl = req.file
+      ? `${BASE_URL}/uploads/wardrobe/${req.file.filename}`
+      : null;
+
+    const setFields = {};
+    if (name && name.trim())          setFields['items.$.name']      = name.trim();
+    if (category)                     setFields['items.$.category']  = category;
+    if (Array.isArray(occasions))     setFields['items.$.occasions'] = occasions;
+    if (resolvedImageUrl)             setFields['items.$.imageUrl']  = resolvedImageUrl;
+
+    if (Object.keys(setFields).length === 0) return res.json({ success: true });
+
+    const wardrobe = await Wardrobe.findOneAndUpdate(
+      { userId: req.user._id, 'items._id': req.params.itemId },
+      { $set: setFields },
+      { new: true }
+    );
+    if (!wardrobe) return res.status(404).json({ success: false, error: 'Không tìm thấy' });
+    res.json({ success: true, data: { imageUrl: resolvedImageUrl } });
   } catch (err) {
     next(err);
   }
@@ -90,4 +128,4 @@ const deleteItem = async (req, res, next) => {
   }
 };
 
-module.exports = { addItem, getWardrobe, deleteItem };
+module.exports = { addItem, getWardrobe, deleteItem, updateItem };
