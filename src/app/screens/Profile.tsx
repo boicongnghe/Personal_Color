@@ -83,8 +83,16 @@ export function Profile() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Show local preview immediately — don't wait for server round-trip
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) updateUser({ avatar: ev.target.result as string });
+    };
+    reader.readAsDataURL(file);
+
     setAvatarUploading(true);
-    await uploadAvatar(file);
+    await uploadAvatar(file); // updates user.avatar to server URL once done
     setAvatarUploading(false);
   };
 

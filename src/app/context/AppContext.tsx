@@ -652,7 +652,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       formData.append('avatar', file);
       const res = await apiUploadAvatar(formData);
       const { avatarUrl } = res.data.data;
-      const fullUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${avatarUrl}`;
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const fullUrl = avatarUrl?.startsWith('http')
+        ? avatarUrl
+        : `${base}${avatarUrl?.startsWith('/') ? '' : '/'}${avatarUrl ?? ''}`;
       setUser((prev: User) => ({ ...prev, avatar: fullUrl }));
       return { success: true, avatarUrl: fullUrl };
     } catch {
