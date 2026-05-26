@@ -86,7 +86,7 @@ type PayStatus = 'idle' | 'pending' | 'success' | 'expired';
 
 export function PremiumUpgrade() {
   const navigate = useNavigate();
-  const { t, updateUser } = useAppContext();
+  const { t, updateUser, refreshUser } = useAppContext();
   const [selectedPlan, setSelectedPlan] = useState("3m");
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<QRData | null>(null);
@@ -140,7 +140,8 @@ export function PremiumUpgrade() {
           clearInterval(pollRef.current!);
           clearInterval(timerRef.current!);
           setPayStatus('success');
-          updateUser({ isPremium: true });
+          // Sync premium status from server (not just local state)
+          await refreshUser().catch(() => updateUser({ isPremium: true }));
           setTimeout(() => {
             setShowQR(false);
             navigate("/home", { replace: true });
