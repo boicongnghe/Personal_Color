@@ -87,7 +87,7 @@ function SmartAdvisorPaywall({ onUpgrade, onBack }: { onUpgrade: () => void; onB
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 pt-12 pb-3 bg-white/80 backdrop-blur-md border-b border-purple-100 shadow-sm">
+      <div className="flex-shrink-0 px-4 pb-3 bg-white/80 backdrop-blur-md border-b border-purple-100 shadow-sm" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-purple-50 hover:bg-purple-100 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-700" />
@@ -459,7 +459,7 @@ export function SmartAdvisor() {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
       {/* ─── Header ─── */}
-      <div className="flex-shrink-0 px-4 pt-12 pb-3 bg-white/80 backdrop-blur-md border-b border-purple-100 shadow-sm">
+      <div className="flex-shrink-0 px-4 pb-3 bg-white/80 backdrop-blur-md border-b border-purple-100 shadow-sm" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center rounded-full bg-purple-50 hover:bg-purple-100 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-700" />

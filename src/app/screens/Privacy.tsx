@@ -19,8 +19,8 @@ export function Privacy() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      <div className="px-6 pt-12 pb-6 bg-white shadow-sm border-b border-gray-100">
+    <div className="min-h-screen bg-slate-50 pb-10 overflow-x-hidden">
+      <div className="px-5 pb-4 bg-white shadow-sm border-b border-gray-100" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}

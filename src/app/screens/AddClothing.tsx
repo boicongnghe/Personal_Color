@@ -64,6 +64,8 @@ export function AddClothing() {
   useEffect(() => {
     if (cameraOpen && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
+      // Explicit play() required on iOS Safari — autoPlay attribute alone isn't enough
+      videoRef.current.play().catch(() => {});
     }
   }, [cameraOpen]);
 
@@ -72,7 +74,12 @@ export function AddClothing() {
     const file = e.target.files?.[0];
     if (!file) return;
     setSelectedFile(file);
-    setSelectedImage(URL.createObjectURL(file));
+    // Use FileReader for reliable iOS Safari support
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) setSelectedImage(ev.target.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   /* ── Camera (getUserMedia) ── */
@@ -98,14 +105,30 @@ export function AddClothing() {
     const video  = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d")?.drawImage(video, 0, 0);
+
+    // videoWidth can be 0 on mobile before metadata loads — fall back to track settings
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    if (!w || !h) {
+      const track = streamRef.current?.getVideoTracks()[0];
+      const settings = track?.getSettings?.();
+      w = settings?.width  || 1280;
+      h = settings?.height || 720;
+    }
+
+    canvas.width  = w;
+    canvas.height = h;
+    canvas.getContext("2d")?.drawImage(video, 0, 0, w, h);
     canvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" });
       setSelectedFile(file);
-      setSelectedImage(URL.createObjectURL(blob));
+      // Use FileReader so the preview works reliably on iOS Safari
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) setSelectedImage(ev.target.result as string);
+      };
+      reader.readAsDataURL(file);
       handleCloseCamera();
     }, "image/jpeg", 0.92);
   };
@@ -234,15 +257,15 @@ export function AddClothing() {
         )}
       </AnimatePresence>
 
-      <div className="px-6 pt-12 pb-6">
+      <div className="px-5 pb-4" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button
           onClick={() => navigate(-1)}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-purple-50 transition-colors mb-6"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-purple-50 transition-colors mb-4"
         >
           <ArrowLeft className="w-6 h-6 text-gray-900" />
         </button>
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">{t("addClothingTitle")}</h1>
-        <p className="text-gray-500 text-sm mb-6">{t("addClothingDesc")}</p>
+        <h1 className="text-xl font-bold text-gray-900 mb-0.5">{t("addClothingTitle")}</h1>
+        <p className="text-gray-500 text-sm mb-4">{t("addClothingDesc")}</p>
 
         {/* ── Image preview / placeholder ── */}
         <div className="relative aspect-square bg-white rounded-3xl overflow-hidden mb-5 border-2 border-dashed border-purple-200 shadow-sm">

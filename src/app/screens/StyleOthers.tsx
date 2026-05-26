@@ -19,7 +19,7 @@ function TryOnPaywall({ onUpgrade, onBack }: { onUpgrade: () => void; onBack: ()
   ];
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex flex-col">
-      <div className="flex-shrink-0 px-5 pt-12 pb-4 bg-white/80 backdrop-blur-md border-b border-purple-100">
+      <div className="flex-shrink-0 px-5 pb-4 bg-white/80 backdrop-blur-md border-b border-purple-100" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-6 h-6 text-gray-900" />
@@ -166,7 +166,7 @@ function CameraModal({ title, facingMode = "environment", onCapture, onClose }: 
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-12 pb-3">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pb-3" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button onClick={handleClose} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
           <X className="w-5 h-5 text-white" />
         </button>
@@ -374,7 +374,7 @@ export function StyleOthers() {
         )}
       </AnimatePresence>
 
-      <div className="px-5 pt-12 pb-6">
+      <div className="px-5 pb-5" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">

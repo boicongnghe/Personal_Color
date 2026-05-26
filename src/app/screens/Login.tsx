@@ -33,9 +33,9 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 overflow-x-hidden">
       {/* Header */}
-      <div className="px-6 pt-12 pb-8">
+      <div className="px-6 pb-6" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button
           onClick={() => navigate("/")}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white transition-colors bg-white/70 shadow-sm"
@@ -45,9 +45,9 @@ export function Login() {
       </div>
 
       {/* Content */}
-      <div className="px-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("welcomeBackLogin")}</h1>
-        <p className="text-gray-600 mb-8">{t("signInContinue")}</p>
+      <div className="px-6 pb-10">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("welcomeBackLogin")}</h1>
+        <p className="text-gray-600 mb-6 text-sm">{t("signInContinue")}</p>
 
         <form onSubmit={handleLogin} className="space-y-4">
           {/* Email Input */}

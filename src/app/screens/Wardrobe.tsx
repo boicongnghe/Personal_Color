@@ -43,7 +43,6 @@ export function Wardrobe() {
   const navigate = useNavigate();
   const { wardrobeList, deleteWardrobeItem, t, user, loadWardrobe } = useAppContext();
   const [activeCategory, setActiveCategory] = useState("Tất cả");
-  const [showPaywall, setShowPaywall] = useState(false);
   const [tryingItemId, setTryingItemId] = useState<string | null>(null);
   const [editItem,          setEditItem]          = useState<WardrobeItem | null>(null);
   const [showPhotoModal,    setShowPhotoModal]    = useState(false);
@@ -135,22 +134,12 @@ export function Wardrobe() {
 
   /* ── Premium required action guard ── */
   const requirePremium = (cb: () => void) => {
-    if (!isPremium) { setShowPaywall(true); return; }
+    if (!isPremium) { navigate("/premium"); return; }
     cb();
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-24">
-
-      {/* ── Paywall Sheet ── */}
-      <AnimatePresence>
-        {showPaywall && (
-          <WardrobePaywall
-            onUpgrade={() => { setShowPaywall(false); navigate("/premium"); }}
-            onClose={() => setShowPaywall(false)}
-          />
-        )}
-      </AnimatePresence>
+    <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-nav overflow-x-hidden">
 
       {/* Hidden gallery input */}
       <input ref={galleryInputRef} type="file" accept="image/*" className="hidden" onChange={onPersonPhotoChange} />
@@ -196,10 +185,10 @@ export function Wardrobe() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-5 pb-3" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-start justify-between mb-1">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t("myWardrobe")}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t("myWardrobe")}</h1>
             <p className="text-gray-500 mt-1">
               {wardrobeList.length} {t("wardrobeMatchDesc")}
             </p>
@@ -232,7 +221,7 @@ export function Wardrobe() {
               <p className="text-white/80 text-xs">Nâng cấp để dùng tủ đồ AI đầy đủ</p>
             </div>
             <button
-              onClick={() => setShowPaywall(true)}
+              onClick={() => navigate("/premium")}
               className="bg-white text-amber-600 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-amber-50 transition-colors flex-shrink-0"
             >
               Mở khoá
@@ -303,7 +292,7 @@ export function Wardrobe() {
               </p>
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => setShowPaywall(true)}
+                onClick={() => navigate("/premium")}
                 className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white px-8 py-3.5 rounded-2xl font-bold shadow-xl flex items-center gap-2"
               >
                 <Zap className="w-5 h-5" />
@@ -714,7 +703,7 @@ function WardrobeCameraModal({
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-12 pb-3">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pb-3" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button onClick={handleClose} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
           <X className="w-5 h-5 text-white" />
         </button>
@@ -869,7 +858,7 @@ function HistoryViewer({ entry, onClose }: { entry: TryOnHistoryEntry; onClose: 
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[70] bg-black flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-12 pb-3">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pb-3" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button onClick={onClose}
           className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
           <X className="w-5 h-5 text-white" />
@@ -1109,100 +1098,3 @@ function EditSheet({
   );
 }
 
-/* ═══════════ Wardrobe Paywall Sheet ═══════════ */
-function WardrobePaywall({ onUpgrade, onClose }: { onUpgrade: () => void; onClose: () => void }) {
-  const PERKS = [
-    "Tủ đồ AI không giới hạn món đồ",
-    "Phối đồ tự động theo tông màu da",
-    "Lọc & gợi ý theo từng dịp",
-    "Quét khuôn mặt không giới hạn",
-    "Trợ lý thông minh AI cao cấp",
-  ];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center"
-    >
-      <motion.div
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
-        onClick={onClose}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      />
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="relative w-full bg-white rounded-t-3xl px-6 pt-6 pb-10 shadow-2xl max-w-md mx-auto"
-      >
-        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-5" />
-
-        <div className="text-center mb-5">
-          <motion.div
-            animate={{ scale: [1, 1.07, 1] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-            className="w-18 h-18 w-[72px] h-[72px] bg-gradient-to-br from-yellow-400 to-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-3 shadow-xl"
-          >
-            <Crown className="w-9 h-9 text-white" />
-          </motion.div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Tủ đồ Premium</h2>
-          <p className="text-gray-500 text-sm">
-            Tính năng <span className="font-bold text-purple-600">Quản lý Tủ đồ</span> chỉ dành cho <span className="font-bold text-amber-600">thành viên Premium</span>.
-          </p>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 mb-5 border border-purple-100">
-          <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-3">Gói Premium bao gồm:</p>
-          <div className="space-y-2.5">
-            {PERKS.map((perk, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <p className="text-sm text-gray-700">{perk}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex gap-2 mb-5">
-          {[
-            { label: "1 tháng", price: "50k" },
-            { label: "3 tháng", price: "135k", hot: true },
-            { label: "6 tháng", price: "240k" },
-          ].map((plan) => (
-            <div
-              key={plan.label}
-              className={`flex-1 rounded-2xl p-3 text-center border-2 ${
-                plan.hot ? "border-purple-400 bg-gradient-to-b from-purple-50 to-pink-50" : "border-gray-200 bg-white"
-              }`}
-            >
-              {plan.hot && <p className="text-[10px] font-bold text-purple-600 mb-0.5">PHỔ BIẾN</p>}
-              <p className="font-bold text-gray-900 text-sm">{plan.price}</p>
-              <p className="text-xs text-gray-500">{plan.label}</p>
-            </div>
-          ))}
-        </div>
-
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={onUpgrade}
-          className="w-full py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-2xl font-bold text-lg shadow-xl flex items-center justify-center gap-2 mb-3"
-        >
-          <Zap className="w-5 h-5" />
-          Nâng cấp Premium ngay
-        </motion.button>
-        <button onClick={onClose} className="w-full py-3 text-gray-400 text-sm hover:text-gray-600">
-          Để sau
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-}

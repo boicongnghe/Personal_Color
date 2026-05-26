@@ -52,9 +52,9 @@ export function Settings() {
   const Divider = () => <div className="h-px bg-gray-50 mx-4" />;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
+    <div className="min-h-screen bg-slate-50 pb-nav overflow-x-hidden">
       {/* Header */}
-      <div className="px-6 pt-12 pb-5 bg-white shadow-sm border-b border-purple-50">
+      <div className="px-5 pb-4 bg-white shadow-sm border-b border-purple-50" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}

@@ -168,20 +168,28 @@ const handleSepayIPN = async (req, res, next) => {
     let orderInvoice, paidAmount, isSuccess;
 
     // ── Extract orderInvoice + paidAmount from any SePay format ──────
-    // Try all known field names in priority order — never assume a single format
-    const rawCode    = body.order_invoice_number   // SePay PG
-                    ?? body.code;                  // SePay bank monitoring
+    // SePay PG format:           order_invoice_number, transaction_amount, transaction_content
+    // SePay bank-monitor format: code (may be null), transferAmount, content, description
+    const rawCode = body.order_invoice_number ?? body.code;  // null in bank-monitor
 
-    // Regex covers both old (CLARITY_XXX_TS) and new (CLARITYXXXTS) formats
-    const contentMatch = (body.transaction_content ?? body.description ?? '')
-      .match(/CLARITY\w+/)?.[0];
+    // Bank-monitor sends the order ID inside `content` and `description`
+    const contentStr = body.transaction_content   // SePay PG
+                    ?? body.content               // SePay bank-monitor (primary)
+                    ?? body.description           // SePay bank-monitor (fallback)
+                    ?? '';
+    const contentMatch = contentStr.match(/CLARITY\w+/)?.[0];
 
     orderInvoice = rawCode ?? contentMatch;
-    paidAmount   = Number(body.transaction_amount ?? body.amount_in) || 0;
 
-    // Determine success: PG sends transaction_status, bank monitoring just sends a transfer
+    // Bank-monitor uses `transferAmount`; PG uses `transaction_amount` or `amount_in`
+    paidAmount = Number(body.transaction_amount ?? body.amount_in ?? body.transferAmount) || 0;
+
+    // Bank-monitor: success = incoming transfer with positive amount (no status field)
+    // PG: success = transaction_status === 'success'
     const pgStatus = body.transaction_status;
-    isSuccess = pgStatus ? pgStatus === 'success' : paidAmount > 0;
+    isSuccess = pgStatus
+      ? pgStatus === 'success'
+      : paidAmount > 0 && body.transferType !== 'out';
 
     if (!isSuccess) {
       console.log('[SePay IPN] Not a successful payment — ignoring');

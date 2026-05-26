@@ -245,7 +245,7 @@ export function FaceScan() {
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ── Header ── */}
-      <div className="px-6 pt-12 pb-3 flex-shrink-0">
+      <div className="px-5 pb-3 flex-shrink-0" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => { stopStream(); navigate("/home"); }}

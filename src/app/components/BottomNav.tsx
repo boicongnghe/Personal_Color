@@ -18,7 +18,7 @@ export function BottomNav({ active }: BottomNavProps) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-purple-100 px-6 py-3 z-50 w-full sm:absolute pb-safe shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-purple-100 px-4 pt-2 z-50 w-full shadow-lg pb-safe">
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = active === item.id;
@@ -26,10 +26,10 @@ export function BottomNav({ active }: BottomNavProps) {
             <button
               key={item.id}
               onClick={() => navigate(item.path)}
-              className="flex flex-col items-center gap-1 min-w-[60px]"
+              className="flex flex-col items-center gap-0.5 flex-1 py-1 min-h-[56px] justify-center"
             >
               <div
-                className={`p-2.5 rounded-2xl transition-all duration-200 ${
+                className={`p-2 rounded-2xl transition-all duration-200 ${
                   isActive
                     ? "bg-gradient-to-br from-purple-100 to-pink-100 shadow-sm scale-110"
                     : "bg-transparent"
@@ -42,7 +42,7 @@ export function BottomNav({ active }: BottomNavProps) {
                 />
               </div>
               <span
-                className={`text-xs font-semibold transition-colors ${
+                className={`text-[11px] font-semibold transition-colors leading-tight ${
                   isActive ? "text-purple-600" : "text-gray-400"
                 }`}
               >
@@ -54,12 +54,12 @@ export function BottomNav({ active }: BottomNavProps) {
         {user.role === "admin" && (
           <button
             onClick={() => navigate("/admin")}
-            className="flex flex-col items-center gap-1 min-w-[60px]"
+            className="flex flex-col items-center gap-0.5 flex-1 py-1 min-h-[56px] justify-center"
           >
-            <div className="p-2.5 rounded-2xl transition-all duration-200 bg-transparent">
+            <div className="p-2 rounded-2xl transition-all duration-200 bg-transparent">
               <Settings className="w-6 h-6 transition-colors text-purple-500" />
             </div>
-            <span className="text-xs font-semibold transition-colors text-purple-500">
+            <span className="text-[11px] font-semibold transition-colors text-purple-500 leading-tight">
               Admin
             </span>
           </button>

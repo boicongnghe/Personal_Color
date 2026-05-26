@@ -36,7 +36,17 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use(limiter);
+// Skip rate limiter for SePay IPN — webhooks must never be throttled
+app.use((req, res, next) => {
+  if (req.path === '/api/subscription/sepay-ipn') return next();
+  return limiter(req, res, next);
+});
+
+// Log every request that reaches Express (before routing) so we can confirm Nginx forwarding
+app.use((req, _res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.path}`);
+  next();
+});
 
 const analyzeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

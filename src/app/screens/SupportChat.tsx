@@ -68,7 +68,7 @@ export function SupportChat() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 bg-white shadow-sm border-b border-gray-100">
-        <div className="px-5 pt-12 pb-3 flex items-center gap-3">
+        <div className="px-5 pb-3 flex items-center gap-3" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
           <button onClick={() => navigate(-1)}
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-6 h-6 text-gray-900" />
@@ -148,7 +148,7 @@ export function SupportChat() {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-4 pb-8">
+      <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 pt-3 pb-safe" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <div className="flex gap-3 items-end">
           <textarea
             value={input}
