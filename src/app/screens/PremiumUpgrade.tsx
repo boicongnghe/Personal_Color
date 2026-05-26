@@ -345,12 +345,12 @@ export function PremiumUpgrade() {
 
       {/* QR Payment Dialog */}
       <Dialog open={showQR} onOpenChange={(open) => { if (!open && payStatus !== 'success') setShowQR(false); }}>
-        <DialogContent className="sm:max-w-md mx-4 rounded-3xl" aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">{t("paymentTitle")}</DialogTitle>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-sm rounded-3xl p-5 max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-lg font-bold text-center">{t("paymentTitle")}</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col items-center gap-4 py-2 relative">
+          <div className="flex flex-col items-center gap-3 relative w-full">
             {/* Success overlay */}
             {payStatus === 'success' && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 rounded-2xl gap-3">
@@ -378,60 +378,63 @@ export function PremiumUpgrade() {
             )}
 
             {/* Plan summary */}
-            <div className="w-full bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl px-5 py-3 flex items-center justify-between">
+            <div className="w-full bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl px-4 py-3 flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Gói đã chọn</p>
-                <p className="font-bold text-gray-900">{activePlan.label}</p>
+                <p className="font-bold text-gray-900 text-sm">{activePlan.label}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-500">Tổng tiền</p>
-                <p className="font-bold text-purple-600 text-lg">{activePlan.priceDisplay}đ</p>
+                <p className="font-bold text-purple-600">{activePlan.priceDisplay}đ</p>
               </div>
             </div>
 
             {/* Countdown timer */}
             {payStatus === 'pending' && (
-              <div className="w-full flex items-center justify-center gap-2">
+              <div className="w-full flex items-center justify-center gap-2 flex-wrap">
                 <span className="text-xs text-gray-500">Hết hạn sau:</span>
                 <span className={`font-mono font-bold text-sm ${secondsLeft <= 60 ? 'text-red-500' : 'text-purple-600'}`}>
                   {formatTime(secondsLeft)}
                 </span>
-                <span className="text-xs text-gray-400 animate-pulse">• Đang chờ thanh toán...</span>
+                <span className="text-xs text-gray-400 animate-pulse">• Đang chờ...</span>
               </div>
             )}
 
-            <p className="text-gray-500 text-sm text-center">{t("paymentDesc")}</p>
+            <p className="text-gray-500 text-xs text-center">{t("paymentDesc")}</p>
 
-            <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-              <img
-                src={orderData?.qrUrl ?? qrData?.qrUrl}
-                alt="QR Code"
-                className="w-48 h-48 object-cover rounded-xl"
-              />
+            {/* QR code — always centered */}
+            <div className="flex justify-center w-full">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 inline-flex">
+                <img
+                  src={orderData?.qrUrl ?? qrData?.qrUrl}
+                  alt="QR Code"
+                  className="w-44 h-44 object-contain rounded-xl"
+                />
+              </div>
             </div>
 
-            <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Ngân hàng:</span>
-                <span className="font-bold text-gray-900">{qrData?.bankName}</span>
+            <div className="w-full bg-gray-50 rounded-2xl p-3 space-y-2 text-sm">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-500 flex-shrink-0 text-xs">Ngân hàng:</span>
+                <span className="font-bold text-gray-900 text-xs text-right">{qrData?.bankName}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">{t("accountHolder")}:</span>
-                <span className="font-bold text-gray-900">{qrData?.accountOwner}</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-500 flex-shrink-0 text-xs">{t("accountHolder")}:</span>
+                <span className="font-bold text-gray-900 text-xs text-right truncate max-w-[55%]">{qrData?.accountOwner}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">{t("bankAccount")}:</span>
-                <span className="font-bold text-gray-900">{qrData?.accountNumber}</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-500 flex-shrink-0 text-xs">{t("bankAccount")}:</span>
+                <span className="font-bold text-gray-900 text-xs text-right">{qrData?.accountNumber}</span>
               </div>
-              <div className="flex justify-between border-t border-gray-200 pt-2 mt-1">
-                <span className="text-gray-500">Nội dung CK:</span>
-                <span className="font-bold text-purple-600">
+              <div className="flex justify-between items-start gap-2 border-t border-gray-200 pt-2 mt-1">
+                <span className="text-gray-500 flex-shrink-0 text-xs">Nội dung CK:</span>
+                <span className="font-bold text-purple-600 text-xs text-right break-all">
                   {qrData?.transferNote ?? orderData?.orderInvoice ?? qrData?.orderInvoice}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Số tiền:</span>
-                <span className="font-bold text-yellow-600">{activePlan.priceDisplay} VNĐ</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-gray-500 flex-shrink-0 text-xs">Số tiền:</span>
+                <span className="font-bold text-yellow-600 text-xs">{activePlan.priceDisplay} VNĐ</span>
               </div>
             </div>
 
