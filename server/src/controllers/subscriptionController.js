@@ -167,23 +167,24 @@ const handleSepayIPN = async (req, res, next) => {
 
     let orderInvoice, paidAmount, isSuccess;
 
-    if (isPGFormat) {
-      // SePay Payment Gateway IPN
-      orderInvoice = body.order_invoice_number;
-      paidAmount   = Number(body.transaction_amount) || 0;
-      isSuccess    = body.transaction_status === 'success';
-    } else if (isBankFormat) {
-      // SePay bank monitoring webhook — any incoming transfer with matching code is a success
-      orderInvoice = body.code
-        ?? (body.transaction_content && body.transaction_content.match(/CLARITY_\w+/)?.[0]);
-      paidAmount   = Number(body.amount_in) || 0;
-      isSuccess    = paidAmount > 0;
-    } else {
-      console.warn('[SePay IPN] Unknown payload format — ignoring:', JSON.stringify(body));
-      return res.json({ success: true, message: 'ignored' });
-    }
+    // ── Extract orderInvoice + paidAmount from any SePay format ──────
+    // Try all known field names in priority order — never assume a single format
+    const rawCode    = body.order_invoice_number   // SePay PG
+                    ?? body.code;                  // SePay bank monitoring
+
+    // Regex covers both old (CLARITY_XXX_TS) and new (CLARITYXXXTS) formats
+    const contentMatch = (body.transaction_content ?? body.description ?? '')
+      .match(/CLARITY\w+/)?.[0];
+
+    orderInvoice = rawCode ?? contentMatch;
+    paidAmount   = Number(body.transaction_amount ?? body.amount_in) || 0;
+
+    // Determine success: PG sends transaction_status, bank monitoring just sends a transfer
+    const pgStatus = body.transaction_status;
+    isSuccess = pgStatus ? pgStatus === 'success' : paidAmount > 0;
 
     if (!isSuccess) {
+      console.log('[SePay IPN] Not a successful payment — ignoring');
       return res.json({ success: true, message: 'ignored' });
     }
 
@@ -192,21 +193,28 @@ const handleSepayIPN = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Missing order invoice' });
     }
 
-    const sub = await Subscription.findOne({ orderId: orderInvoice, status: 'pending' });
+    // Find subscription — accept pending OR expired (IPN can arrive after the 10-min UI window)
+    const sub = await Subscription.findOne({
+      $or: [{ orderId: orderInvoice }, { txnRef: orderInvoice }],
+      status: { $in: ['pending', 'expired'] },
+    }).sort({ createdAt: -1 });
+
+    // Idempotency: already activated by a previous IPN retry
     if (!sub) {
-      console.error(`[SePay IPN] No pending subscription for order ${orderInvoice}`);
+      const already = await Subscription.findOne({
+        $or: [{ orderId: orderInvoice }, { txnRef: orderInvoice }],
+        status: 'active',
+      });
+      if (already) {
+        console.log(`[SePay IPN] Order ${orderInvoice} already active — idempotent OK`);
+        return res.json({ success: true });
+      }
+      console.error(`[SePay IPN] No subscription found for order ${orderInvoice}`);
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    // Check the payment window hasn't expired
-    if (sub.expiresAt && sub.expiresAt < new Date()) {
-      console.error(`[SePay IPN] Order ${orderInvoice} expired`);
-      await sub.updateOne({ status: 'expired' });
-      return res.status(400).json({ success: false, error: 'Order expired' });
-    }
-
-    // Verify paid amount is sufficient
-    if (paidAmount < sub.amount) {
+    // Verify paid amount is sufficient (allow 1% tolerance for rounding)
+    if (paidAmount > 0 && paidAmount < sub.amount * 0.99) {
       console.error(`[SePay IPN] Underpayment: expected ${sub.amount}, got ${paidAmount}`);
       return res.status(400).json({ success: false, error: 'Insufficient amount' });
     }
