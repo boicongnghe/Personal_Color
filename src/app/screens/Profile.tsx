@@ -266,13 +266,13 @@ export function Profile() {
     ));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-nav overflow-x-hidden">
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
 
-      <div className="px-5 pt-12 pb-6">
+      <div className="px-4 pb-4" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         {/* ── Header ── */}
-        <div className="flex justify-between items-center mb-5">
-          <h1 className="text-3xl font-bold text-gray-900">{t("profile")}</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-bold text-gray-900">{t("profile")}</h1>
           <div className="bg-white rounded-full p-1 shadow-sm border border-gray-100 flex text-sm font-medium">
             {(["en", "vi"] as const).map((lang) => (
               <button key={lang} onClick={() => setLanguage(lang)}

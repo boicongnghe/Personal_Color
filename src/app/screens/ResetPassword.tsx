@@ -89,7 +89,7 @@ export function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="px-6 pt-12 pb-8">
+      <div className="px-6 pb-6" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button
           onClick={() => navigate("/login")}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"

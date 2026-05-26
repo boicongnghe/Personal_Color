@@ -42,9 +42,9 @@ export function AnalysisResult() {
   const detail      = isVi ? result.detailedAnalysisVi : result.detailedAnalysis;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-44">
+    <div className="min-h-screen bg-slate-50 pb-nav">
       {/* Header */}
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-5 pt-10 pb-3">
         <button
           onClick={() => navigate("/home")}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-gray-50 transition-colors mb-4"
@@ -52,7 +52,7 @@ export function AnalysisResult() {
           <ArrowLeft className="w-6 h-6 text-gray-900" />
         </button>
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">{t("resultTitle")}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t("resultTitle")}</h1>
           <div className="flex gap-2">
             <button className="w-9 h-9 bg-white rounded-xl shadow-sm flex items-center justify-center hover:bg-purple-50 transition-colors">
               <Bookmark className="w-4 h-4 text-purple-500" />
@@ -68,7 +68,7 @@ export function AnalysisResult() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-6 mb-6 mt-2"
+        className="px-5 mb-5 mt-2"
       >
         <div className={`relative overflow-hidden bg-gradient-to-br ${result.cardGradient} rounded-3xl p-6 text-white shadow-xl`}>
           {/* Decorative circles */}

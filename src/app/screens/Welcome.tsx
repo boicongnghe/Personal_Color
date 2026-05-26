@@ -25,27 +25,27 @@ export function Welcome() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 via-blue-50 to-yellow-50 flex flex-col items-center justify-between px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 via-blue-50 to-yellow-50 flex flex-col items-center justify-between px-5 pt-safe pb-safe" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
       {/* Logo and Title */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center mt-12"
+        className="text-center mt-8"
       >
-        <div className="w-28 h-28 rounded-2xl mx-auto mb-6 shadow-lg overflow-hidden">
+        <div className="w-24 h-24 rounded-2xl mx-auto mb-4 shadow-lg overflow-hidden">
           <img
             src={logoUrl}
             alt="Clarity"
             className="w-full h-full object-cover"
           />
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-3">Clarity</h1>
-        <p className="text-gray-600 text-lg">Người hướng dẫn màu sắc cá nhân của bạn</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Clarity</h1>
+        <p className="text-gray-600 text-base">Người hướng dẫn màu sắc cá nhân của bạn</p>
       </motion.div>
 
       {/* Features */}
-      <div className="space-y-8 w-full max-w-md">
+      <div className="space-y-5 w-full max-w-sm">
         {features.map((feature, index) => (
           <motion.div
             key={index}
@@ -72,17 +72,17 @@ export function Welcome() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.6 }}
-        className="w-full max-w-md space-y-3 mb-8"
+        className="w-full max-w-sm space-y-3 mb-6"
       >
         <button
           onClick={() => navigate("/signup")}
-          className="w-full py-4 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-shadow"
+          className="w-full py-4 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 text-white rounded-2xl font-bold text-base shadow-lg hover:shadow-xl transition-shadow"
         >
           Bắt đầu ngay
         </button>
         <button
           onClick={() => navigate("/login")}
-          className="w-full py-4 bg-white text-purple-600 rounded-2xl font-semibold text-lg border-2 border-purple-300 hover:bg-purple-50 transition-colors"
+          className="w-full py-4 bg-white text-purple-600 rounded-2xl font-bold text-base border-2 border-purple-300 hover:bg-purple-50 transition-colors"
         >
           Tôi đã có tài khoản
         </button>

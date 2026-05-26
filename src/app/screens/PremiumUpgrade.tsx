@@ -180,9 +180,9 @@ export function PremiumUpgrade() {
 
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-12">
+    <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-10 overflow-x-hidden">
       {/* Header */}
-      <div className="px-6 pt-10 pb-4">
+      <div className="px-5 pb-4" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-purple-50 transition-colors mb-6"

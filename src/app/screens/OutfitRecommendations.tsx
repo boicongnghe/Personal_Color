@@ -147,23 +147,23 @@ export function OutfitRecommendations() {
 
   /* ══ Render ══ */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-nav overflow-x-hidden">
 
       {/* Header */}
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-5 pt-10 pb-3">
         <button
           onClick={() => navigate("/home")}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-purple-50 transition-colors mb-6"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-purple-50 transition-colors mb-4"
         >
           <ArrowLeft className="w-6 h-6 text-gray-900" />
         </button>
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">{t("outfitTitle")}</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-0.5">{t("outfitTitle")}</h1>
         <p className="text-gray-500 text-sm">{t("outfitDesc")}</p>
       </div>
 
       {/* Filter tabs — only show when there are products */}
       {!loading && products.length > 0 && (
-        <div className="px-6 mb-6">
+        <div className="px-5 mb-4">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <TabBtn occ="all" />
             {occasions.map((occ) => <TabBtn key={occ} occ={occ} />)}
@@ -172,7 +172,7 @@ export function OutfitRecommendations() {
       )}
 
       {/* Content */}
-      <div className="px-6 pb-8">
+      <div className="px-5 pb-4">
         {loading ? (
           <div className="py-24 text-center text-gray-400">
             <div className="w-8 h-8 border-2 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-3" />
@@ -189,7 +189,7 @@ export function OutfitRecommendations() {
         ) : (
           <>
             <AnimatePresence mode="popLayout">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {filtered.map((p, index) => (
                   <motion.div
                     key={p._id}

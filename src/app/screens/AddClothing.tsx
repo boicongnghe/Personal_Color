@@ -234,15 +234,15 @@ export function AddClothing() {
         )}
       </AnimatePresence>
 
-      <div className="px-6 pt-12 pb-6">
+      <div className="px-5 pb-4" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button
           onClick={() => navigate(-1)}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-purple-50 transition-colors mb-6"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-purple-50 transition-colors mb-4"
         >
           <ArrowLeft className="w-6 h-6 text-gray-900" />
         </button>
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">{t("addClothingTitle")}</h1>
-        <p className="text-gray-500 text-sm mb-6">{t("addClothingDesc")}</p>
+        <h1 className="text-xl font-bold text-gray-900 mb-0.5">{t("addClothingTitle")}</h1>
+        <p className="text-gray-500 text-sm mb-4">{t("addClothingDesc")}</p>
 
         {/* ── Image preview / placeholder ── */}
         <div className="relative aspect-square bg-white rounded-3xl overflow-hidden mb-5 border-2 border-dashed border-purple-200 shadow-sm">

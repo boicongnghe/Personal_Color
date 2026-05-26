@@ -50,13 +50,13 @@ export function Home() {
   ];
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 via-blue-50 to-yellow-50 pb-24">
+    <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 via-blue-50 to-yellow-50 pb-nav">
       {/* Header */}
-      <div className="px-6 pt-8 pb-6">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">{t("welcomeBack")}! 👋</h1>
-            <p className="text-gray-600">{user.name}</p>
+      <div className="px-5 pt-8 pb-4">
+        <div className="flex items-center justify-between mb-6">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold text-gray-900 mb-0.5 truncate">{t("welcomeBack")}! 👋</h1>
+            <p className="text-gray-600 text-sm truncate">{user.name}</p>
           </div>
           <button
             onClick={() => navigate("/premium")}
@@ -68,22 +68,22 @@ export function Home() {
         </div>
 
         {/* Main Features */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-3 mb-6">
           {mainFeatures.map((feature, index) => (
             <button
               key={index}
               onClick={() => navigate(feature.path)}
-              className={`w-full p-6 ${index === 0 ? 'bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400' : 'bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300'} rounded-3xl shadow-lg hover:shadow-xl transition-shadow`}
+              className={`w-full p-4 ${index === 0 ? 'bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400' : 'bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300'} rounded-2xl shadow-lg hover:shadow-xl transition-shadow`}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                  <feature.icon className="w-7 h-7 text-white" />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-xl font-bold text-white mb-1">
+                <div className="flex-1 text-left min-w-0">
+                  <h3 className="text-base font-bold text-white mb-0.5 truncate">
                     {feature.title}
                   </h3>
-                  <p className="text-white/90 text-sm">{feature.description}</p>
+                  <p className="text-white/90 text-xs truncate">{feature.description}</p>
                 </div>
               </div>
             </button>
@@ -91,24 +91,24 @@ export function Home() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">{t("quickActions")}</h2>
+        <div className="mb-5">
+          <h2 className="text-lg font-bold text-gray-900 mb-3">{t("quickActions")}</h2>
           <div className="grid grid-cols-2 gap-3">
             {quickActions.map((action, index) => (
               <button
                 key={index}
                 onClick={() => navigate(action.path)}
-                className="relative p-5 bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-purple-100"
+                className="relative p-4 bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-purple-100 text-left"
               >
                 {action.premium && (
-                  <div className="absolute top-3 right-3">
-                    <Crown className="w-4 h-4 text-yellow-500" />
+                  <div className="absolute top-2.5 right-2.5">
+                    <Crown className="w-3.5 h-3.5 text-yellow-500" />
                   </div>
                 )}
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center mb-3">
-                  <action.icon className="w-6 h-6 text-purple-600" />
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center mb-2">
+                  <action.icon className="w-5 h-5 text-purple-600" />
                 </div>
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-xs font-semibold text-gray-900 leading-snug">
                   {action.title}
                 </h3>
               </button>
@@ -117,16 +117,16 @@ export function Home() {
         </div>
 
         {/* Tips Section */}
-        <div className="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 rounded-3xl p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+        <div className="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 rounded-2xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-purple-600" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-gray-900 mb-1">
                 {t("proTip")}
               </h3>
-              <p className="text-gray-700 text-sm">
+              <p className="text-gray-700 text-xs leading-relaxed">
                 {t("proTipDesc")}
               </p>
             </div>
