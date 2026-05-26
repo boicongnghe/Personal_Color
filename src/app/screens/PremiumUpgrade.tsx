@@ -120,7 +120,8 @@ export function PremiumUpgrade() {
       setSecondsLeft(remaining);
       if (remaining <= 0) {
         clearInterval(timerRef.current!);
-        if (pollRef.current) clearInterval(pollRef.current!);
+        // Do NOT stop polling here — IPN can arrive after the UI countdown ends.
+        // Polling continues for up to 5 more minutes (handled inside startPolling).
         setPayStatus('expired');
       }
     }, 1000);
@@ -128,10 +129,13 @@ export function PremiumUpgrade() {
 
   const startPolling = (orderInvoice: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
+    // Poll for up to 15 minutes total regardless of UI countdown
+    const pollDeadline = Date.now() + 15 * 60 * 1000;
     pollRef.current = setInterval(async () => {
       try {
         const res = await checkPaymentStatus(orderInvoice);
-        const { status, expired } = res.data?.data ?? {};
+        const { status } = res.data?.data ?? {};
+
         if (status === 'active') {
           clearInterval(pollRef.current!);
           clearInterval(timerRef.current!);
@@ -141,15 +145,17 @@ export function PremiumUpgrade() {
             setShowQR(false);
             navigate("/home", { replace: true });
           }, 800);
-        } else if (expired || status === 'expired') {
+          return;
+        }
+
+        // Stop polling only after 15-minute hard deadline
+        if (Date.now() > pollDeadline) {
           clearInterval(pollRef.current!);
-          clearInterval(timerRef.current!);
-          setPayStatus('expired');
         }
       } catch {
         // network hiccup — keep polling
       }
-    }, 2000);
+    }, 3000);
   };
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan)!;
@@ -352,16 +358,20 @@ export function PremiumUpgrade() {
               </div>
             )}
 
-            {/* Expired overlay */}
+            {/* Expired overlay — still polling in background */}
             {payStatus === 'expired' && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 rounded-2xl gap-3">
-                <div className="text-5xl">⏰</div>
-                <p className="text-base font-semibold text-red-500 text-center">Đã hết hạn, vui lòng tạo lại</p>
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 rounded-2xl gap-3 px-4">
+                <div className="text-5xl">⏳</div>
+                <p className="text-base font-semibold text-orange-500 text-center">Đã chuyển tiền rồi?</p>
+                <p className="text-xs text-gray-500 text-center leading-relaxed">
+                  Hệ thống vẫn đang chờ xác nhận từ SePay.<br />
+                  Nếu bạn đã thanh toán, vui lòng đợi thêm vài phút — trang sẽ tự cập nhật.
+                </p>
                 <button
                   onClick={() => { setShowQR(false); setPayStatus('idle'); setOrderData(null); setQrData(null); }}
-                  className="px-5 py-2 bg-purple-500 text-white rounded-xl font-bold text-sm"
+                  className="px-5 py-2 bg-gray-200 text-gray-700 rounded-xl font-bold text-sm mt-1"
                 >
-                  Đóng
+                  Đóng & tạo đơn mới
                 </button>
               </div>
             )}
