@@ -29,12 +29,35 @@ function tagSeasons(colorHex) {
     .map(([season]) => season);
 }
 
+// Build the absolute image URL that a browser can actually reach
+function absoluteImageUrl(req, imageUrl) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    // Rebase legacy localhost URLs to the real server origin
+    if (imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1')) {
+      const path = imageUrl.replace(/^https?:\/\/[^/]+/, '');
+      const origin = process.env.SERVER_BASE_URL
+        || `${req.protocol}://${req.get('host')}`;
+      return `${origin}${path}`;
+    }
+    return imageUrl; // already an absolute external URL
+  }
+  // Relative path — prepend server origin
+  const origin = process.env.SERVER_BASE_URL
+    || `${req.protocol}://${req.get('host')}`;
+  return `${origin}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+}
+
 const getWardrobe = async (req, res, next) => {
   try {
     const wardrobe = await Wardrobe.findOne({ userId: req.user._id });
-    const items = wardrobe
+    const rawItems = wardrobe
       ? [...wardrobe.items].sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
       : [];
+    const items = rawItems.map(item => ({
+      ...item.toObject(),
+      imageUrl: absoluteImageUrl(req, item.imageUrl),
+    }));
     res.json({ success: true, data: { items, total: items.length } });
   } catch (err) {
     next(err);
@@ -71,7 +94,8 @@ const addItem = async (req, res, next) => {
       { $push: { items: newItem } },
       { returnDocument: 'after', upsert: true }
     );
-    const added = wardrobe.items[wardrobe.items.length - 1];
+    const added = wardrobe.items[wardrobe.items.length - 1].toObject();
+    added.imageUrl = absoluteImageUrl(req, added.imageUrl);
     res.json({ success: true, data: { item: added } });
   } catch (err) {
     next(err);
