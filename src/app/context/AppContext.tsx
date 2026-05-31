@@ -665,6 +665,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+  // Resolve wardrobe/avatar image URLs from DB — handles 3 cases:
+  // 1. Already absolute external URL → keep
+  // 2. Old records saved with http://localhost:3001/... → rebase to API_BASE
+  // 3. New relative /uploads/... paths → prepend API_BASE
+  const resolveImg = (url?: string): string => {
+    if (!url) return FALLBACK_IMAGE;
+    if (url.startsWith('http://localhost') || url.startsWith('https://localhost')) {
+      const path = url.replace(/^https?:\/\/localhost:\d+/, '');
+      return `${API_BASE}${path}`;
+    }
+    if (url.startsWith('/')) return `${API_BASE}${url}`;
+    return url; // already absolute (https://...)
+  };
+
   // Shared: apply full user data from getMe response and load related lists
   const applyGetMeData = (u: Record<string, any>) => {
     const rawAvatar = u.avatarUrl;
@@ -696,7 +710,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           occasions: Array.isArray(item.occasions) && item.occasions.length > 0
             ? item.occasions
             : ["Thường ngày"],
-          image: item.imageUrl || FALLBACK_IMAGE,
+          image: resolveImg(item.imageUrl),
         })));
       })
       .catch(() => {});
@@ -834,7 +848,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         occasions: Array.isArray(item.occasions) && item.occasions.length > 0
           ? item.occasions
           : ["Thường ngày"],
-        image: item.imageUrl || FALLBACK_IMAGE,
+        image: resolveImg(item.imageUrl),
       }));
       setWardrobeList(transformed);
     } catch {

@@ -174,7 +174,7 @@ export function AddClothing() {
   /* ── Analyzing overlay ── */
   if (analyzing) {
     return (
-      <div className="min-h-full bg-gradient-to-b from-purple-500 via-pink-400 to-blue-400 flex flex-col items-center justify-center px-6">
+      <div className="fixed inset-0 z-50 bg-gradient-to-b from-purple-500 via-pink-400 to-blue-400 flex flex-col items-center justify-center px-6">
         <motion.div
           animate={{ scale: [1, 1.15, 1], rotate: [0, 180, 360] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}

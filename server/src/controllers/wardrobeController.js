@@ -54,9 +54,9 @@ const addItem = async (req, res, next) => {
 
     if (!name) return res.status(400).json({ success: false, error: 'name là bắt buộc' });
 
-    const BASE_URL = process.env.SERVER_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+    // Store relative path so it works regardless of deployment URL
     const resolvedImageUrl = req.file
-      ? `${BASE_URL}/uploads/wardrobe/${req.file.filename}`
+      ? `/uploads/wardrobe/${req.file.filename}`
       : (imageUrl || undefined);
 
     const seasons = tagSeasons(color);
@@ -87,9 +87,8 @@ const updateItem = async (req, res, next) => {
       try { occasions = JSON.parse(occasions); } catch { occasions = null; }
     }
 
-    const BASE_URL = process.env.SERVER_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
     const resolvedImageUrl = req.file
-      ? `${BASE_URL}/uploads/wardrobe/${req.file.filename}`
+      ? `/uploads/wardrobe/${req.file.filename}`
       : null;
 
     const setFields = {};
