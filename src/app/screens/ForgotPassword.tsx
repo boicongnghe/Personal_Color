@@ -42,7 +42,7 @@ export function ForgotPassword() {
           Link có hiệu lực trong 1 giờ. Kiểm tra cả thư mục Spam nếu không thấy.
         </p>
         <button
-          onClick={() => navigate("/login")}
+          onClick={() => navigate(-1)}
           className="w-full max-w-sm py-4 bg-gray-900 text-white rounded-2xl font-semibold text-base hover:bg-black transition-colors"
         >
           {t("backToLogin")}
@@ -55,7 +55,7 @@ export function ForgotPassword() {
     <div className="min-h-screen bg-white">
       <div className="px-6 pb-6" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <button
-          onClick={() => navigate("/login")}
+          onClick={() => navigate(-1)}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft className="w-6 h-6 text-gray-900" />
