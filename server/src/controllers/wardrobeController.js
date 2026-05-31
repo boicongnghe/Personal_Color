@@ -2,7 +2,6 @@ const Wardrobe = require('../models/Wardrobe');
 const seasonalPalettes = require('../../../shared/seasonalPalettes');
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
-const VALID_CATEGORIES = ['top', 'bottom', 'shoes', 'accessory'];
 
 function hexToLab(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -29,44 +28,21 @@ function tagSeasons(colorHex) {
     .map(([season]) => season);
 }
 
-// Build the absolute image URL that a browser can actually reach
-function absoluteImageUrl(req, imageUrl) {
-  if (!imageUrl) return null;
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    // Rebase legacy localhost URLs to the real server origin
-    if (imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1')) {
-      const path = imageUrl.replace(/^https?:\/\/[^/]+/, '');
-      const origin = process.env.SERVER_BASE_URL
-        || `${req.protocol}://${req.get('host')}`;
-      return `${origin}${path}`;
-    }
-    return imageUrl; // already an absolute external URL
-  }
-  // Relative path — prepend server origin
-  const origin = process.env.SERVER_BASE_URL
-    || `${req.protocol}://${req.get('host')}`;
-  return `${origin}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-}
+const VI_CATEGORY_MAP = {
+  'Áo': 'top', 'Quần': 'bottom', 'Váy': 'bottom',
+  'Áo khoác': 'top', 'Phụ kiện': 'accessory', 'Giày dép': 'shoes',
+};
 
 const getWardrobe = async (req, res, next) => {
   try {
     const wardrobe = await Wardrobe.findOne({ userId: req.user._id });
-    const rawItems = wardrobe
+    const items = wardrobe
       ? [...wardrobe.items].sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
       : [];
-    const items = rawItems.map(item => ({
-      ...item.toObject(),
-      imageUrl: absoluteImageUrl(req, item.imageUrl),
-    }));
     res.json({ success: true, data: { items, total: items.length } });
   } catch (err) {
     next(err);
   }
-};
-
-const VI_CATEGORY_MAP = {
-  'Áo': 'top', 'Quần': 'bottom', 'Váy': 'bottom',
-  'Áo khoác': 'top', 'Phụ kiện': 'accessory', 'Giày dép': 'shoes',
 };
 
 const addItem = async (req, res, next) => {
@@ -77,10 +53,8 @@ const addItem = async (req, res, next) => {
 
     if (!name) return res.status(400).json({ success: false, error: 'name là bắt buộc' });
 
-    // Store relative path so it works regardless of deployment URL
-    const resolvedImageUrl = req.file
-      ? `/uploads/wardrobe/${req.file.filename}`
-      : (imageUrl || undefined);
+    // Cloudinary returns req.file.path as the full secure CDN URL
+    const resolvedImageUrl = req.file?.path || req.file?.secure_url || imageUrl || undefined;
 
     const seasons = tagSeasons(color);
     let occasions = [];
@@ -94,8 +68,7 @@ const addItem = async (req, res, next) => {
       { $push: { items: newItem } },
       { returnDocument: 'after', upsert: true }
     );
-    const added = wardrobe.items[wardrobe.items.length - 1].toObject();
-    added.imageUrl = absoluteImageUrl(req, added.imageUrl);
+    const added = wardrobe.items[wardrobe.items.length - 1];
     res.json({ success: true, data: { item: added } });
   } catch (err) {
     next(err);
@@ -111,9 +84,8 @@ const updateItem = async (req, res, next) => {
       try { occasions = JSON.parse(occasions); } catch { occasions = null; }
     }
 
-    const resolvedImageUrl = req.file
-      ? `/uploads/wardrobe/${req.file.filename}`
-      : null;
+    // Cloudinary returns req.file.path as the full secure CDN URL
+    const resolvedImageUrl = req.file?.path || req.file?.secure_url || null;
 
     const setFields = {};
     if (name && name.trim())          setFields['items.$.name']      = name.trim();

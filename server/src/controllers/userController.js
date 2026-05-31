@@ -176,7 +176,8 @@ const toggleFavorite = async (req, res, next) => {
 const uploadAvatarController = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, error: 'Không có file ảnh' });
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    // Cloudinary returns the full CDN URL in req.file.path
+    const avatarUrl = req.file.path || req.file.secure_url || `/uploads/avatars/${req.file.filename}`;
     await User.findByIdAndUpdate(req.userId, { $set: { avatarUrl } });
     res.json({ success: true, data: { avatarUrl } });
   } catch (err) {
