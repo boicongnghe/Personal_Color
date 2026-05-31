@@ -652,10 +652,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       formData.append('avatar', file);
       const res = await apiUploadAvatar(formData);
       const { avatarUrl } = res.data.data;
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const fullUrl = avatarUrl?.startsWith('http')
-        ? avatarUrl
-        : `${base}${avatarUrl?.startsWith('/') ? '' : '/'}${avatarUrl ?? ''}`;
+      const fullUrl = resolveImg(avatarUrl);
       setUser((prev: User) => ({ ...prev, avatar: fullUrl }));
       return { success: true, avatarUrl: fullUrl };
     } catch {
@@ -665,15 +662,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-  // Server now returns absolute URLs — just fall back if missing
-  const resolveImg = (url?: string): string => url || FALLBACK_IMAGE;
+  // Resolve any image URL to a browser-loadable URL:
+  // - Cloudinary https://... → use as-is
+  // - Old localhost http://localhost:PORT/... → rebase to API_BASE
+  // - Relative /uploads/... → prepend API_BASE
+  // - Empty → FALLBACK_IMAGE
+  const resolveImg = (url?: string | null): string => {
+    if (!url) return FALLBACK_IMAGE;
+    if (url.startsWith('https://')) return url;
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)/.test(url)) {
+      const p = url.replace(/^https?:\/\/[^/]+/, '');
+      return `${API_BASE}${p}`;
+    }
+    if (url.startsWith('/')) return `${API_BASE}${url}`;
+    return url;
+  };
 
   // Shared: apply full user data from getMe response and load related lists
   const applyGetMeData = (u: Record<string, any>) => {
-    const rawAvatar = u.avatarUrl;
-    const avatar = rawAvatar
-      ? (rawAvatar.startsWith('http') ? rawAvatar : `${API_BASE}${rawAvatar}`)
-      : null;
+    const avatar = u.avatarUrl ? resolveImg(u.avatarUrl) : null;
     setIsLoggedIn(true);
     setUser((prev: User) => ({
       ...prev,
@@ -718,7 +725,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         date: new Date(scan.scanDate).toLocaleDateString("vi-VN"),
         colorType: ct.nameVi,
         colorTypeId: ct.id,
-        image: scan.photoUrl ? `${API_BASE}${scan.photoUrl}` : ct.sampleImage,
+        image: scan.photoUrl ? resolveImg(scan.photoUrl) : ct.sampleImage,
       };
     });
 
