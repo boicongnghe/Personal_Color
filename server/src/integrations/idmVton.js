@@ -13,12 +13,15 @@ function getClient() {
 
 /**
  * Run IDM-VTON virtual try-on via Replicate.
- * @param {{ personImageBase64: string, clothingImageBase64: string, personMime?: string, clothingMime?: string }} opts
+ * @param {{ personImageBase64: string, clothingImageBase64: string, personMime?: string, clothingMime?: string, category?: 'upper_body'|'lower_body'|'dresses' }} opts
  * @returns {{ resultUrl: string, resultBase64: string, resultMime: string }}
  */
-async function runTryOn({ personImageBase64, clothingImageBase64, personMime, clothingMime }) {
+async function runTryOn({ personImageBase64, clothingImageBase64, personMime, clothingMime, category }) {
   const humanImg   = `data:${personMime   ?? 'image/jpeg'};base64,${personImageBase64}`;
   const garmentImg = `data:${clothingMime ?? 'image/jpeg'};base64,${clothingImageBase64}`;
+
+  const VALID_CATEGORIES = ['upper_body', 'lower_body', 'dresses'];
+  const garmentCategory  = VALID_CATEGORIES.includes(category) ? category : 'upper_body';
 
   const REPLICATE_TIMEOUT_MS = 90000;
 
@@ -29,6 +32,7 @@ async function runTryOn({ personImageBase64, clothingImageBase64, personMime, cl
         human_img:       humanImg,
         garm_img:        garmentImg,
         garment_des:     'clothing item',
+        category:        garmentCategory,
         is_checked:      false,   // skip human-parsing step (avoids "list index out of range")
         is_checked_crop: true,    // auto-crop person before try-on
         denoise_steps:   30,

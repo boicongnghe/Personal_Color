@@ -3,6 +3,25 @@ const { runTryOn } = require('../integrations/idmVton');
 const User     = require('../models/User');
 const Wardrobe = require('../models/Wardrobe');
 
+/**
+ * Map wardrobe category (Vietnamese or English) to IDM-VTON garment category.
+ * DB values from AddClothing: "Áo", "Quần", "Váy", "Áo khoác", "Phụ kiện", "Giày dép"
+ * plus any free-text custom categories the user may have typed.
+ */
+function mapCategory(category = '') {
+  const c = category.trim().toLowerCase();
+  // lower_body: pants, shorts, jeans, trousers
+  if (['quần', 'quần jeans', 'quần shorts', 'quần short', 'shorts', 'jeans', 'pants', 'trousers', 'bottom'].some(k => c.includes(k))) {
+    return 'lower_body';
+  }
+  // dresses: skirts and full dresses (váy covers both in Vietnamese)
+  if (['váy', 'dress', 'skirt', 'dresses', 'skirts'].some(k => c.includes(k))) {
+    return 'dresses';
+  }
+  // default: upper_body (Áo, Áo khoác, Phụ kiện, Giày dép, shirts, jackets, etc.)
+  return 'upper_body';
+}
+
 // POST /api/wardrobe/try-on/save-photo
 const savePersonPhoto = async (req, res, next) => {
   try {
@@ -103,12 +122,13 @@ const tryOnItem = async (req, res, next) => {
       clothingMime   = 'image/bmp';
     }
 
-    // 4. Call IDM-VTON
+    // 4. Call IDM-VTON with correct garment category
     const result = await runTryOn({
       personImageBase64:   Buffer.from(personBuffer).toString('base64'),
       clothingImageBase64: clothingBuffer.toString('base64'),
       personMime,
       clothingMime,
+      category: mapCategory(item.category),
     });
 
     return res.json({
@@ -173,6 +193,7 @@ const tryOnReplicate = async (req, res, next) => {
       clothingImageBase64: clothingBuffer.toString('base64'),
       personMime,
       clothingMime,
+      category: mapCategory(req.body.category),
     });
 
     console.log('✅ Try-on complete:', result.resultUrl);
