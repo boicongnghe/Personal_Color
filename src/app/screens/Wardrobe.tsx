@@ -262,19 +262,26 @@ export function Wardrobe() {
         <div className="px-6">
           {/* Blurred preview of wardrobe items */}
           <div className="relative mb-6">
-            {/* Blurred grid preview */}
+            {/* Blurred grid preview — always 4 slots so the overlay has height */}
             <div className="grid grid-cols-2 gap-4 filter blur-sm pointer-events-none select-none opacity-60">
-              {wardrobeList.slice(0, 4).map((item) => (
-                <div key={item.id} className="bg-white rounded-2xl shadow-md overflow-hidden">
-                  <div className="relative aspect-[3/4] bg-gray-100">
-                    <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              {Array.from({ length: 4 }).map((_, i) => {
+                const item = wardrobeList[i];
+                return (
+                  <div key={i} className="bg-white rounded-2xl shadow-md overflow-hidden">
+                    <div className="relative aspect-[3/4] bg-gray-100">
+                      {item ? (
+                        <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <div className="h-3 bg-gray-200 rounded mb-2 w-3/4" />
+                      <div className="h-2 bg-gray-100 rounded w-1/2" />
+                    </div>
                   </div>
-                  <div className="p-3">
-                    <div className="h-3 bg-gray-200 rounded mb-2 w-3/4" />
-                    <div className="h-2 bg-gray-100 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Lock overlay */}
