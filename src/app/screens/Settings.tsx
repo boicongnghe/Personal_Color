@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import {
   ArrowLeft, Key, Shield, Globe, Crown, FileText,
-  HelpCircle, LogOut, ChevronRight, Check, User, Trash2,
+  LogOut, ChevronRight, Check, User, Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import { useAppContext } from "../context/AppContext";
@@ -163,18 +163,10 @@ export function Settings() {
           </div>
         </div>
 
-        {/* Hỗ trợ & Pháp lý */}
+        {/* Pháp lý */}
         <div>
-          <SectionTitle label="Hỗ trợ & Pháp lý" />
+          <SectionTitle label="Pháp lý" />
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <Row
-              icon={HelpCircle}
-              iconBg="bg-teal-500"
-              label="Trung tâm trợ giúp"
-              sub="Gửi tin nhắn — đội ngũ phản hồi 24h"
-              onClick={() => navigate("/support")}
-            />
-            <Divider />
             <Row
               icon={FileText}
               iconBg="bg-purple-500"
