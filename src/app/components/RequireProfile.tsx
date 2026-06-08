@@ -8,7 +8,7 @@ export function RequireProfile() {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50" style={{ minHeight: '100dvh' }}>
+      <div className="h-full flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
         <div className="w-10 h-10 border-4 border-purple-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -22,9 +22,8 @@ export function RequireProfile() {
   /* ── Gate UI ── */
   return (
     <div
-      className="bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex flex-col items-center justify-center px-6 overflow-y-auto"
+      className="h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex flex-col items-center justify-center px-6"
       style={{
-        minHeight: '100dvh',
         paddingTop: 'max(3rem, env(safe-area-inset-top))',
         paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))',
       }}

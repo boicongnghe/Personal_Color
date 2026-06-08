@@ -26,9 +26,8 @@ export function Welcome() {
 
   return (
     <div
-      className="bg-gradient-to-br from-pink-50 via-purple-50 via-blue-50 to-yellow-50 flex flex-col items-center px-5 overflow-y-auto"
+      className="h-full bg-gradient-to-br from-pink-50 via-purple-50 via-blue-50 to-yellow-50 flex flex-col items-center px-5"
       style={{
-        minHeight: '100dvh',
         paddingTop: 'max(3rem, env(safe-area-inset-top))',
         paddingBottom: 'max(2rem, env(safe-area-inset-bottom))',
       }}
