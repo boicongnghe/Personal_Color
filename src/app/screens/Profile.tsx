@@ -4,7 +4,7 @@ import {
   Crown, Palette, Settings, LogOut, ChevronRight,
   Edit2, Camera, User as UserIcon, Ruler, Weight,
   Sparkles, Check, X, Wallet, CalendarDays, Dumbbell,
-  ScanFace, Bot, Users,
+  ScanFace, Bot, Users, HelpCircle,
 } from "lucide-react";
 import { BottomNav } from "../components/BottomNav";
 import { useAppContext } from "../context/AppContext";
@@ -222,7 +222,8 @@ export function Profile() {
   ];
 
   const settingsMenu: MenuItem[] = [
-    { icon: Settings, label: t("settings"), path: "/settings" },
+    { icon: Settings,    label: t("settings"),                  path: "/settings" },
+    { icon: HelpCircle,  label: "Trung tâm hỗ trợ", description: "Gửi tin nhắn — đội ngũ phản hồi 24h", path: "/support" },
   ];
 
   const renderMenu = (items: MenuItem[]) =>
