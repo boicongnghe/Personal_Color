@@ -27,19 +27,18 @@ export function AnalysisResult() {
   const navigate  = useNavigate();
   const { t, lastScanResultId, language, scanHistory, user } = useAppContext();
 
-  // Resolve the result: prefer lastScanResultId, fallback to most recent scan, then default
-  const resolvedId = lastScanResultId
-    ?? scanHistory[0]?.colorTypeId
-    ?? "warm-autumn";
+  const hasScan = lastScanResultId !== null || scanHistory.length > 0;
 
-  const result = COLOR_TYPES.find(ct => ct.id === resolvedId) ?? COLOR_TYPES[0];
+  // Resolve the result only when scan data exists
+  const resolvedId = lastScanResultId ?? scanHistory[0]?.colorTypeId ?? null;
+  const result = resolvedId ? (COLOR_TYPES.find(ct => ct.id === resolvedId) ?? null) : null;
 
   const isVi = language === "vi";
-  const colorType   = isVi ? result.nameVi       : result.name;
-  const undertone   = isVi ? result.undertoneVi  : result.undertone;
-  const contrast    = isVi ? result.contrastVi   : result.contrast;
-  const description = isVi ? result.descriptionVi : result.description;
-  const detail      = isVi ? result.detailedAnalysisVi : result.detailedAnalysis;
+  const colorType   = result ? (isVi ? result.nameVi       : result.name)               : "";
+  const undertone   = result ? (isVi ? result.undertoneVi  : result.undertone)           : "";
+  const contrast    = result ? (isVi ? result.contrastVi   : result.contrast)            : "";
+  const description = result ? (isVi ? result.descriptionVi : result.description)        : "";
+  const detail      = result ? (isVi ? result.detailedAnalysisVi : result.detailedAnalysis) : "";
 
   return (
     <div className="min-h-screen bg-slate-50 pb-nav">
@@ -64,6 +63,26 @@ export function AnalysisResult() {
         </div>
       </div>
 
+      {/* ── Empty state when no scan yet ── */}
+      {!hasScan ? (
+        <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+          <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
+            <Palette className="w-12 h-12 text-purple-300" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Chưa có kết quả phân tích</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-xs">
+            Hãy quét khuôn mặt để AI khám phá bảng màu cá nhân của bạn
+          </p>
+          <button
+            onClick={() => navigate("/scan")}
+            className="px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center gap-2"
+          >
+            <Sparkles className="w-5 h-5" />
+            Quét khuôn mặt ngay
+          </button>
+        </div>
+      ) : result ? (
+        <>
       {/* ── Main Result Card ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -329,6 +348,9 @@ export function AnalysisResult() {
           Xem lịch sử quét của tôi
         </button>
       </div>
+
+        </>
+      ) : null}
 
       <BottomNav active="home" />
     </div>
