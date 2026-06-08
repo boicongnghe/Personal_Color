@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { ArrowLeft, Heart, ShoppingBag, Package } from "lucide-react";
+import { ArrowLeft, Heart, ShoppingBag, Package, Lock, Crown, Zap } from "lucide-react";
 import { BottomNav } from "../components/BottomNav";
 import { useState, useEffect, useMemo } from "react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
@@ -190,69 +190,114 @@ export function OutfitRecommendations() {
           <>
             <AnimatePresence mode="popLayout">
               <div className="grid grid-cols-2 gap-3">
-                {filtered.map((p, index) => (
-                  <motion.div
-                    key={p._id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.85 }}
-                    transition={{ duration: 0.2 }}
-                    className="bg-white rounded-2xl shadow-md overflow-hidden"
-                    style={{
-                      filter:        !user.isPremium && index >= 3 ? "blur(4px)" : "none",
-                      pointerEvents: !user.isPremium && index >= 3 ? "none" : "auto",
-                    }}
-                  >
-                    {/* Image */}
-                    <div className="relative aspect-[3/4] bg-gray-100">
-                      <ImageWithFallback
-                        src={p.image ?? ""}
-                        alt={p.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {/* Like */}
-                      <button
-                        onClick={() => toggleFav(p._id)}
-                        className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform"
-                      >
-                        <Heart
-                          className={`w-4 h-4 ${
-                            favoriteOutfitIds.has(p._id) ? "fill-red-500 text-red-500" : "text-gray-400"
-                          }`}
+                {/* Free: show first 3 normally + next 2 blurred; Premium: show all */}
+                {(user.isPremium ? filtered : filtered.slice(0, 5)).map((p, index) => {
+                  const isLocked = !user.isPremium && index >= 3;
+                  return (
+                    <motion.div
+                      key={p._id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.85 }}
+                      transition={{ duration: 0.2 }}
+                      className="relative bg-white rounded-2xl shadow-md overflow-hidden"
+                    >
+                      {/* Image */}
+                      <div className={`relative aspect-[3/4] bg-gray-100 ${isLocked ? "filter blur-sm" : ""}`}>
+                        <ImageWithFallback
+                          src={p.image ?? ""}
+                          alt={p.title}
+                          className="w-full h-full object-cover"
                         />
-                      </button>
-                    </div>
-
-                    {/* Info */}
-                    <div className="p-3">
-                      <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
-                        {p.title}
-                      </h3>
-                      {p.price ? (
-                        <p className="text-purple-600 font-bold text-base mb-2">
-                          {p.price.toLocaleString("vi-VN")}đ
-                        </p>
-                      ) : (
-                        <p className="text-gray-300 text-sm mb-2">---</p>
-                      )}
-                      <div className="mb-2">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${PLATFORM_BADGE[p.platform] ?? PLATFORM_BADGE.other}`}>
-                          {PLATFORM_LABEL[p.platform] ?? p.platform}
-                        </span>
+                        {!isLocked && (
+                          <button
+                            onClick={() => toggleFav(p._id)}
+                            className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                          >
+                            <Heart
+                              className={`w-4 h-4 ${
+                                favoriteOutfitIds.has(p._id) ? "fill-red-500 text-red-500" : "text-gray-400"
+                              }`}
+                            />
+                          </button>
+                        )}
                       </div>
-                      <button
-                        onClick={() => handleClick(p)}
-                        className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-400 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 hover:shadow-md transition-shadow"
-                      >
-                        <ShoppingBag className="w-3 h-3" />
-                        {t("buyNow")}
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+
+                      {/* Info */}
+                      <div className={`p-3 ${isLocked ? "filter blur-sm select-none" : ""}`}>
+                        <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
+                          {p.title}
+                        </h3>
+                        {p.price ? (
+                          <p className="text-purple-600 font-bold text-base mb-2">
+                            {p.price.toLocaleString("vi-VN")}đ
+                          </p>
+                        ) : (
+                          <p className="text-gray-300 text-sm mb-2">---</p>
+                        )}
+                        <div className="mb-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${PLATFORM_BADGE[p.platform] ?? PLATFORM_BADGE.other}`}>
+                            {PLATFORM_LABEL[p.platform] ?? p.platform}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleClick(p)}
+                          className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-400 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 hover:shadow-md transition-shadow"
+                        >
+                          <ShoppingBag className="w-3 h-3" />
+                          {t("buyNow")}
+                        </button>
+                      </div>
+
+                      {/* Lock overlay for blurred items */}
+                      {isLocked && (
+                        <div
+                          className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[2px] cursor-pointer"
+                          onClick={() => navigate("/premium")}
+                        >
+                          <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg mb-2">
+                            <Lock className="w-5 h-5 text-white" />
+                          </div>
+                          <p className="text-xs font-bold text-gray-800">Premium</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
               </div>
             </AnimatePresence>
+
+            {/* Premium upsell banner for free users */}
+            {!user.isPremium && filtered.length > 3 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-3xl p-5 shadow-xl relative overflow-hidden"
+              >
+                <div className="absolute -top-6 -right-6 w-28 h-28 bg-yellow-300 rounded-full blur-2xl opacity-40" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-11 h-11 bg-white/25 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <Crown className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-black text-base leading-tight">
+                        {filtered.length - 3}+ gợi ý đang bị khoá
+                      </p>
+                      <p className="text-yellow-50 text-xs">Nâng cấp để xem toàn bộ outfit phù hợp</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate("/premium")}
+                    className="w-full py-3 bg-white text-amber-600 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-transform"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Mở khoá Premium ngay
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
             {filtered.length === 0 && (
               <div className="py-16 text-center text-gray-400">
