@@ -101,14 +101,11 @@ export function Profile() {
   const handleSaveBody = async () => {
     const { gender, height, weight, bust, waist, hips, age, bodyShape, budget } = bodyForm;
 
-    // Validate — all fields required
+    // Validate — bust/waist/hips are optional
     const missing: string[] = [];
     if (!height)    missing.push("Chiều cao");
     if (!weight)    missing.push("Cân nặng");
     if (!age)       missing.push("Tuổi");
-    if (!bust)      missing.push("Vòng 1");
-    if (!waist)     missing.push("Vòng 2");
-    if (!hips)      missing.push("Vòng 3");
     if (!bodyShape) missing.push("Vóc dáng");
     if (!budget)    missing.push("Ngân sách");
 
@@ -121,14 +118,14 @@ export function Profile() {
 
     const payload: Parameters<typeof saveBodyProfile>[0] = {
       gender,
-      height:    parseFloat(height),
-      weight:    parseFloat(weight),
-      bust:      parseFloat(bust),
-      waist:     parseFloat(waist),
-      hips:      parseFloat(hips),
+      height: parseFloat(height),
+      weight: parseFloat(weight),
       age,
       bodyShape,
       budget,
+      ...(bust  && { bust:  parseFloat(bust)  }),
+      ...(waist && { waist: parseFloat(waist) }),
+      ...(hips  && { hips:  parseFloat(hips)  }),
     };
 
     const result = await saveBodyProfile(payload);
@@ -583,9 +580,9 @@ export function Profile() {
                 {/* 3 vòng đo để phân loại vóc dáng tự động */}
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                    <Dumbbell className="w-3.5 h-3.5" /> 3 vòng đo (để phân loại vóc dáng)
+                    <Dumbbell className="w-3.5 h-3.5" /> 3 vòng đo (tùy chọn)
                   </p>
-                  <p className="text-[10px] text-gray-400 mb-3">Đo ở phần đầy nhất của ngực, nhỏ nhất của eo, đầy nhất của hông</p>
+                  <p className="text-[10px] text-gray-400 mb-3">Không bắt buộc · Nếu có, AI sẽ tự phân loại vóc dáng cho bạn</p>
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { key: "bust",  label: "Vòng 1 (cm)", placeholder: "88" },
