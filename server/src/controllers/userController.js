@@ -20,10 +20,25 @@ const saveBodyProfile = async (req, res, next) => {
     if (bodyShape)                 setFields['bodyProfile.bodyShape'] = bodyShape;
     if (budget)                    setFields['bodyProfile.budget']    = budget;
 
+    // Always save height & weight when provided (they are required in the form)
+    if (height != null && height !== '') {
+      const h = parseFloat(height);
+      if (h > 0) setFields['bodyProfile.height'] = h;
+    }
+    if (weight != null && weight !== '') {
+      const w = parseFloat(weight);
+      if (w > 0) setFields['bodyProfile.weight'] = w;
+    }
+
+    // Save optional measurements when provided
+    if (bust  != null && bust  !== '') { const v = parseFloat(bust);  if (v > 0) setFields['bodyProfile.bust']  = v; }
+    if (waist != null && waist !== '') { const v = parseFloat(waist); if (v > 0) setFields['bodyProfile.waist'] = v; }
+    if (hips  != null && hips  !== '') { const v = parseFloat(hips);  if (v > 0) setFields['bodyProfile.hips']  = v; }
+
     let bodyType = null;
     let typeInfo = null;
 
-    // Classify body type only when all 5 measurements are provided
+    // Auto-classify body type only when all 5 measurements are present
     const hasMeasurements = height && weight && bust && waist && hips;
     if (hasMeasurements) {
       const nums = {
@@ -33,20 +48,8 @@ const saveBodyProfile = async (req, res, next) => {
         waist:  parseFloat(waist),
         hips:   parseFloat(hips),
       };
-      for (const [k, v] of Object.entries(nums)) {
-        if (!v || v <= 0) {
-          return res.status(400).json({ success: false, error: `${k} phải lớn hơn 0` });
-        }
-      }
       bodyType = classifyBodyType(gender, nums.bust, nums.waist, nums.hips, nums.height, nums.weight);
-      Object.assign(setFields, {
-        'bodyProfile.height':   nums.height,
-        'bodyProfile.weight':   nums.weight,
-        'bodyProfile.bust':     nums.bust,
-        'bodyProfile.waist':    nums.waist,
-        'bodyProfile.hips':     nums.hips,
-        'bodyProfile.bodyType': bodyType,
-      });
+      setFields['bodyProfile.bodyType'] = bodyType;
       typeInfo = BODY_TYPES[gender]?.[bodyType];
     }
 
