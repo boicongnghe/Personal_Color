@@ -12,13 +12,23 @@ import { motion, AnimatePresence } from "motion/react";
 import MannequinSVG from "../components/MannequinSVG";
 
 /* ── Body shape data ──────────────────────────────────────────── */
-const BODY_SHAPES = [
-  { id: "Hourglass",          labelVi: "Đồng hồ cát",    labelEn: "Hourglass",          emoji: "⏳", desc: "Vai & hông cân đối, eo thon" },
-  { id: "Pear",               labelVi: "Quả lê",          labelEn: "Pear",               emoji: "🍐", desc: "Hông rộng hơn vai" },
-  { id: "Apple",              labelVi: "Quả táo",         labelEn: "Apple",              emoji: "🍎", desc: "Vòng bụng đầy đặn" },
-  { id: "Rectangle",         labelVi: "Chữ nhật",        labelEn: "Rectangle",          emoji: "▬",  desc: "Vai, eo, hông gần bằng nhau" },
-  { id: "Inverted Triangle", labelVi: "Tam giác ngược",  labelEn: "Inverted Triangle",  emoji: "🔻", desc: "Vai rộng hơn hông" },
+const FEMALE_BODY_SHAPES = [
+  { id: "Hourglass",          labelVi: "Đồng hồ cát",     labelEn: "Hourglass",           emoji: "⏳", desc: "Vai & hông cân đối, eo thon" },
+  { id: "Pear",               labelVi: "Quả lê",           labelEn: "Pear",                emoji: "🍐", desc: "Hông rộng hơn vai" },
+  { id: "Apple",              labelVi: "Quả táo",          labelEn: "Apple",               emoji: "🍎", desc: "Vòng bụng đầy đặn" },
+  { id: "Rectangle",          labelVi: "Chữ nhật",         labelEn: "Rectangle",           emoji: "▬",  desc: "Vai, eo, hông gần bằng nhau" },
+  { id: "Inverted Triangle",  labelVi: "Tam giác ngược",   labelEn: "Inverted Triangle",   emoji: "🔻", desc: "Vai rộng hơn hông" },
 ];
+
+const MALE_BODY_SHAPES = [
+  { id: "Hourglass",          labelVi: "Hình thang ngược", labelEn: "Inverted Trapezoid",  emoji: "⏳", desc: "Vai rộng, hông cân đối" },
+  { id: "Pear",               labelVi: "Quả lê",           labelEn: "Pear",                emoji: "🍐", desc: "Hông rộng hơn vai" },
+  { id: "Apple",              labelVi: "Quả táo",          labelEn: "Apple",               emoji: "🍎", desc: "Vòng bụng đầy đặn" },
+  { id: "Rectangle",          labelVi: "Chữ nhật",         labelEn: "Rectangle",           emoji: "▬",  desc: "Vai, eo, hông gần bằng nhau" },
+  { id: "Inverted Triangle",  labelVi: "Tam giác ngược",   labelEn: "Inverted Triangle",   emoji: "🔻", desc: "Vai rộng hơn hông" },
+];
+
+const BODY_SHAPES = FEMALE_BODY_SHAPES;
 
 const BODY_TYPE_IMAGES: Record<string, Record<string, string>> = {
   female: {
@@ -92,7 +102,8 @@ export function Profile() {
 
   const bmi      = calcBMI(bodyForm.height, bodyForm.weight);
   const savedBMI = calcBMI(user.bodyProfile?.height?.toString() ?? "", user.bodyProfile?.weight?.toString() ?? "");
-  const currentShape = BODY_SHAPES.find(b => b.id === user.bodyProfile?.bodyShape);
+  const currentBodyShapes = (user.bodyProfile?.gender ?? "female") === "male" ? MALE_BODY_SHAPES : FEMALE_BODY_SHAPES;
+  const currentShape = currentBodyShapes.find(b => b.id === user.bodyProfile?.bodyShape);
 
   const hasBodyData = !!(user.bodyProfile?.bodyType || user.bodyProfile?.height || user.bodyProfile?.bodyShape);
 
@@ -635,7 +646,7 @@ export function Profile() {
                     Hoặc chọn vóc dáng thủ công
                   </p>
                   <div className="space-y-2">
-                    {BODY_SHAPES.map(shape => {
+                    {(bodyForm.gender === "male" ? MALE_BODY_SHAPES : FEMALE_BODY_SHAPES).map(shape => {
                       const isActive = bodyForm.bodyShape === shape.id;
                       return (
                         <motion.button key={shape.id} whileTap={{ scale: 0.98 }}
