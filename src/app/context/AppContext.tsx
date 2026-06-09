@@ -575,13 +575,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User>({
-    name: "Nguyễn Văn A",
-    email: "nguyen.vana@example.com",
+    name: "",
+    email: "",
     avatar: null,
-    colorType: "Warm Autumn",
+    colorType: "",
     isPremium: false,
-    savedOutfits: 12,
-    wardrobeItems: 34,
+    savedOutfits: 0,
+    wardrobeItems: 0,
     role: "user",
   });
 
@@ -687,6 +687,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       name: u.displayName || u.email,
       email: u.email,
       avatar,
+      colorType: "",
       role: u.isAdmin ? "admin" as UserRole : "user" as UserRole,
       isPremium: u.subscriptionTier === "premium",
       bodyProfile: u.bodyProfile ?? prev.bodyProfile,
@@ -710,9 +711,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         })));
       })
       .catch(() => {});
-    // Load scan history
+    // Load scan history — derive colorType from most recent scan
     apiGetScanHistory()
-      .then((r) => setScanHistory(buildScanItems(r.data.data?.scans || [])))
+      .then((r) => {
+        const items = buildScanItems(r.data.data?.scans || []);
+        setScanHistory(items);
+        if (items.length > 0) {
+          setUser((prev: User) => ({ ...prev, colorType: items[0].colorType }));
+        }
+      })
       .catch(() => {});
   };
 
