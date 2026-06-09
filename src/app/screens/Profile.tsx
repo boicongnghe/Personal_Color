@@ -20,6 +20,23 @@ const BODY_SHAPES = [
   { id: "Inverted Triangle", labelVi: "Tam giác ngược",  labelEn: "Inverted Triangle",  emoji: "🔻", desc: "Vai rộng hơn hông" },
 ];
 
+const BODY_TYPE_IMAGES: Record<string, Record<string, string>> = {
+  female: {
+    "Hourglass":          "/body-types/donghocat.png",
+    "Pear":               "/body-types/quale.png",
+    "Apple":              "/body-types/quatao.png",
+    "Rectangle":          "/body-types/hinhchunhat.png",
+    "Inverted Triangle":  "/body-types/tamgianguoc.png",
+  },
+  male: {
+    "Hourglass":          "/body-types/hinhthangnguocnam.png",
+    "Pear":               "/body-types/qualenam.png",
+    "Apple":              "/body-types/quataonam.png",
+    "Rectangle":          "/body-types/hinhchunhatnam.png",
+    "Inverted Triangle":  "/body-types/tamgiacnguocnam.png",
+  },
+};
+
 const BUDGETS = [
   { value: "500,000",    label: "< 500k" },
   { value: "1,000,000",  label: "1 triệu" },
@@ -487,12 +504,20 @@ export function Profile() {
                       className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-4"
                     >
                       <div className="flex items-center gap-3 mb-3">
-                        <MannequinSVG
-                          gender={bodyForm.gender}
-                          bodyType={bodyResult.bodyType}
-                          season={undefined}
-                          size={80}
-                        />
+                        {BODY_TYPE_IMAGES[bodyForm.gender]?.[bodyResult.bodyType] ? (
+                          <img
+                            src={BODY_TYPE_IMAGES[bodyForm.gender][bodyResult.bodyType]}
+                            alt={bodyResult.label}
+                            className="w-16 h-20 object-contain flex-shrink-0"
+                          />
+                        ) : (
+                          <MannequinSVG
+                            gender={bodyForm.gender}
+                            bodyType={bodyResult.bodyType}
+                            season={undefined}
+                            size={80}
+                          />
+                        )}
                         <div className="flex-1">
                           <p className="text-xs font-bold text-purple-600 uppercase tracking-wide mb-0.5">Vóc dáng của bạn</p>
                           <p className="text-lg font-black text-gray-900">{bodyResult.emoji} {bodyResult.label || bodyResult.bodyType}</p>
@@ -619,8 +644,16 @@ export function Profile() {
                             isActive ? "border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"
                           }`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${isActive ? "bg-white shadow-sm" : "bg-gray-50"}`}>
-                            {shape.emoji}
+                          <div className={`w-12 h-14 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${isActive ? "bg-white shadow-sm" : "bg-gray-50"}`}>
+                            {BODY_TYPE_IMAGES[bodyForm.gender]?.[shape.id] ? (
+                              <img
+                                src={BODY_TYPE_IMAGES[bodyForm.gender][shape.id]}
+                                alt={shape.labelVi}
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <span className="text-xl">{shape.emoji}</span>
+                            )}
                           </div>
                           <div className="flex-1">
                             <p className={`font-bold text-sm ${isActive ? "text-purple-700" : "text-gray-900"}`}>
