@@ -30,9 +30,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(passport.initialize());
 app.use(morgan('dev'));
 
+// Global limiter — applies to all routes except SePay IPN webhook.
+// Env vars: GLOBAL_RATE_LIMIT (requests), GLOBAL_RATE_WINDOW_MS (window in ms).
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: process.env.GLOBAL_RATE_WINDOW_MS ? parseInt(process.env.GLOBAL_RATE_WINDOW_MS) : 15 * 60 * 1000,
+  max: process.env.GLOBAL_RATE_LIMIT ? parseInt(process.env.GLOBAL_RATE_LIMIT) : 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -48,9 +50,11 @@ app.use((req, _res, next) => {
   next();
 });
 
+// Analyze-face limiter — stricter limit for the AI analysis endpoint (expensive operation).
+// Env vars: ANALYZE_RATE_LIMIT (requests), ANALYZE_RATE_WINDOW_MS (window in ms).
 const analyzeLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
+  windowMs: process.env.ANALYZE_RATE_WINDOW_MS ? parseInt(process.env.ANALYZE_RATE_WINDOW_MS) : 60 * 60 * 1000,
+  max: process.env.ANALYZE_RATE_LIMIT ? parseInt(process.env.ANALYZE_RATE_LIMIT) : 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Quá nhiều lần phân tích, vui lòng thử lại sau 1 giờ' },
