@@ -68,17 +68,17 @@ export function AdminSupport() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="px-6 pt-5 lg:pt-4 pb-5 lg:px-8 bg-white shadow-sm border-b border-gray-100">
+      <div className="px-6 pt-5 xl:pt-4 pb-5 xl:px-8 bg-white shadow-sm border-b border-gray-100">
         <div className="flex items-center gap-4 max-w-7xl mx-auto">
           <button onClick={() => navigate("/admin")}
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+            className="xl:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-6 h-6 text-gray-900" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <img src={logoUrl} alt="Clarity" className="lg:hidden h-7 w-auto flex-shrink-0" />
+            <img src={logoUrl} alt="Clarity" className="xl:hidden h-7 w-auto flex-shrink-0" />
             <div className="min-w-0">
-              <span className="lg:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Hỗ trợ</span>
-              <h1 className="hidden lg:block text-xl font-bold text-gray-900">Hỗ trợ người dùng</h1>
+              <span className="xl:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Hỗ trợ</span>
+              <h1 className="hidden xl:block text-xl font-bold text-gray-900">Hỗ trợ người dùng</h1>
               {pendingCount > 0 && (
                 <p className="text-xs text-amber-600 font-semibold mt-0.5">
                   {pendingCount} tin nhắn chờ phản hồi

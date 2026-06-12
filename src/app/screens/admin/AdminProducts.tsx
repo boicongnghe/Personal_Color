@@ -263,18 +263,18 @@ export function AdminProducts() {
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 lg:px-8 py-4 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 px-5 xl:px-8 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 max-w-7xl mx-auto">
-          <button onClick={goBack} className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
+          <button onClick={goBack} className="xl:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <img src={logoUrl} alt="Clarity" className="lg:hidden h-7 w-auto flex-shrink-0" />
+            <img src={logoUrl} alt="Clarity" className="xl:hidden h-7 w-auto flex-shrink-0" />
             <div className="min-w-0">
-              <span className="lg:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              <span className="xl:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                 {step==="list"?"Sản phẩm":step==="add"?"Thêm mới":"Chỉnh sửa"}
               </span>
-              <h1 className="hidden lg:block text-xl font-bold text-gray-900">
+              <h1 className="hidden xl:block text-xl font-bold text-gray-900">
                 {step==="list"?"Quản lý sản phẩm":step==="add"?"Thêm sản phẩm mới":"Chỉnh sửa sản phẩm"}
               </h1>
               {step==="list" && <p className="text-xs text-gray-400 mt-0.5">{products.length} sản phẩm</p>}

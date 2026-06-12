@@ -20,7 +20,7 @@ export function AdminLayout() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Desktop sidebar ───────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col w-60 fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-30">
+      <aside className="hidden xl:flex flex-col w-60 fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-30">
         {/* Logo */}
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -65,15 +65,15 @@ export function AdminLayout() {
       </aside>
 
       {/* ── Main content ──────────────────────────────────── */}
-      <main className="lg:ml-60">
+      <main className="xl:ml-60">
         {/* Extra bottom padding on mobile to clear the fixed bottom nav */}
-        <div className="pb-16 lg:pb-0">
+        <div className="pb-16 xl:pb-0">
           <Outlet />
         </div>
       </main>
 
       {/* ── Mobile bottom nav ─────────────────────────────── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 flex">
+      <nav className="xl:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 flex">
         {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
           const active = location.pathname === path;
           return (
