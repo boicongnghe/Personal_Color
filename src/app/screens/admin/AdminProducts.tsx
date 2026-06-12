@@ -263,17 +263,20 @@ export function AdminProducts() {
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
+      <div className="bg-white border-b border-gray-200 px-5 lg:px-8 py-4 sticky top-0 z-10">
+        <div className="flex items-center gap-3 max-w-7xl mx-auto">
           <button onClick={goBack} className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <img src={logoUrl} alt="Clarity" className="h-7 w-auto flex-shrink-0" />
+            <img src={logoUrl} alt="Clarity" className="lg:hidden h-7 w-auto flex-shrink-0" />
             <div className="min-w-0">
-              <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              <span className="lg:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                 {step==="list"?"Sản phẩm":step==="add"?"Thêm mới":"Chỉnh sửa"}
               </span>
+              <h1 className="hidden lg:block text-xl font-bold text-gray-900">
+                {step==="list"?"Quản lý sản phẩm":step==="add"?"Thêm sản phẩm mới":"Chỉnh sửa sản phẩm"}
+              </h1>
               {step==="list" && <p className="text-xs text-gray-400 mt-0.5">{products.length} sản phẩm</p>}
             </div>
           </div>
@@ -295,7 +298,7 @@ export function AdminProducts() {
 
       {/* ══ FORM ══ */}
       {isFormStep && (
-        <div className="px-5 py-5 max-w-lg mx-auto space-y-3">
+        <div className="px-5 lg:px-8 py-5 max-w-2xl mx-auto space-y-3">
 
           {/* Card 1: Liên kết */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -414,7 +417,7 @@ export function AdminProducts() {
 
       {/* ══ LIST ══ */}
       {step==="list" && (
-        <div className="p-5">
+        <div className="p-5 lg:p-8 max-w-7xl mx-auto">
           {/* Search */}
           <div className="relative mb-5">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
