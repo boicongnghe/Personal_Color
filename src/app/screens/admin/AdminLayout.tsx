@@ -17,10 +17,10 @@ export function AdminLayout() {
   const { logout } = useAppContext();
 
   return (
-    <div className="min-h-screen bg-gray-50 xl:pl-60">
+    <div className="min-h-screen bg-gray-50 xl:flex">
 
-      {/* ── Desktop sidebar ───────────────────────────────── */}
-      <aside className="hidden xl:flex flex-col w-60 fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-30">
+      {/* ── Desktop sidebar (sticky, trong flow) ─────────── */}
+      <aside className="hidden xl:flex flex-col w-60 flex-shrink-0 sticky top-0 h-screen bg-white border-r border-gray-200 z-20 overflow-y-auto">
         {/* Logo */}
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -64,10 +64,9 @@ export function AdminLayout() {
         </div>
       </aside>
 
-      {/* ── Main content ──────────────────────────────────── */}
-      <main>
-        {/* Extra bottom padding on mobile to clear the fixed bottom nav */}
-        <div className="pb-16 xl:pb-0">
+      {/* ── Main content (flex-1 min-w-0 để chiếm đúng phần còn lại) ── */}
+      <main className="flex-1 min-w-0">
+        <div className="pb-16 xl:pb-0 min-h-screen">
           <Outlet />
         </div>
       </main>
