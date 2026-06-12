@@ -17,7 +17,7 @@ export function AdminLayout() {
   const { logout } = useAppContext();
 
   return (
-    <div className="min-h-screen bg-gray-50 lg:flex">
+    <div className="min-h-screen bg-gray-50">
 
       {/* ── Desktop sidebar ───────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-60 fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-30">
@@ -65,7 +65,7 @@ export function AdminLayout() {
       </aside>
 
       {/* ── Main content ──────────────────────────────────── */}
-      <main className="flex-1 lg:ml-60">
+      <main className="lg:ml-60">
         {/* Extra bottom padding on mobile to clear the fixed bottom nav */}
         <div className="pb-16 lg:pb-0">
           <Outlet />
