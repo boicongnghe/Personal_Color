@@ -174,7 +174,7 @@ export function AdminDashboard() {
 
       {/* ── Header ─────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 px-5 xl:px-8 py-3.5 sticky top-0 z-10">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             <img src={logoUrl} alt="Clarity" className="xl:hidden h-8 w-auto" />
             <span className="xl:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Admin</span>
@@ -193,7 +193,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      <div className="p-4 max-w-7xl mx-auto space-y-4">
+      <div className="p-4 w-full space-y-4">
 
         {/* ── Quick nav (hidden when sidebar is visible) ── */}
         <div className="xl:hidden grid grid-cols-4 gap-2">

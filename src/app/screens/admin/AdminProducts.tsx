@@ -264,7 +264,7 @@ export function AdminProducts() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-5 xl:px-8 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-3 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 w-full">
           <button onClick={goBack} className="xl:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
@@ -417,7 +417,7 @@ export function AdminProducts() {
 
       {/* ══ LIST ══ */}
       {step==="list" && (
-        <div className="p-5 lg:p-8 max-w-7xl mx-auto">
+        <div className="p-5 lg:p-8 w-full">
           {/* Search */}
           <div className="relative mb-5">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
