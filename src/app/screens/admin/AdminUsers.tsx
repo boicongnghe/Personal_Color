@@ -136,7 +136,7 @@ export function AdminUsers() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-5 xl:px-8 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-3 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 w-full">
           <button onClick={() => navigate("/admin")}
             className="xl:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
@@ -164,7 +164,7 @@ export function AdminUsers() {
         </div>
       )}
 
-      <div className="p-5 xl:p-6 max-w-7xl mx-auto space-y-4">
+      <div className="p-5 xl:p-6 w-full space-y-4">
 
         {/* Stats */}
         {!loading && (

@@ -137,7 +137,7 @@ export function AdminRevenue() {
 
       {/* ── Header ─────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 px-5 xl:px-8 py-3.5 sticky top-0 z-10">
-        <div className="flex items-center gap-3 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 w-full">
           <button onClick={() => navigate("/admin")}
             className="xl:hidden w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
@@ -154,7 +154,7 @@ export function AdminRevenue() {
         </div>
       </div>
 
-      <div className="p-4 max-w-7xl mx-auto space-y-4">
+      <div className="p-4 w-full space-y-4">
 
         {/* ── Error ──────────────────────────────────── */}
         {error && (

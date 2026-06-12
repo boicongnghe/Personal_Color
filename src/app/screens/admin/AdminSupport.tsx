@@ -69,7 +69,7 @@ export function AdminSupport() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="px-6 pt-5 xl:pt-4 pb-5 xl:px-8 bg-white shadow-sm border-b border-gray-100">
-        <div className="flex items-center gap-4 max-w-7xl mx-auto">
+        <div className="flex items-center gap-4 w-full">
           <button onClick={() => navigate("/admin")}
             className="xl:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-6 h-6 text-gray-900" />
@@ -92,7 +92,7 @@ export function AdminSupport() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 mt-4 max-w-7xl mx-auto">
+        <div className="flex gap-2 mt-4 w-full">
           {([["all", "Tất cả"], ["pending", "Chờ phản hồi"], ["replied", "Đã phản hồi"]] as const).map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
@@ -111,7 +111,7 @@ export function AdminSupport() {
         </div>
       </div>
 
-      <div className="px-5 lg:px-8 py-5 max-w-7xl mx-auto">
+      <div className="px-5 lg:px-8 py-5 w-full">
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
