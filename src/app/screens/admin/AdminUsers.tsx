@@ -138,7 +138,7 @@ export function AdminUsers() {
       <div className="bg-white border-b border-gray-200 px-5 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/admin")}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">

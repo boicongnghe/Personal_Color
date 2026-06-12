@@ -30,6 +30,7 @@ import { AddClothing } from "./screens/AddClothing";
 import { AuthCallback } from "./screens/AuthCallback";
 import { UpgradeSuccess } from "./screens/UpgradeSuccess";
 import { AdminGuard } from "./components/AdminGuard";
+import { AdminLayout } from "./screens/admin/AdminLayout";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireProfile } from "./components/RequireProfile";
 
@@ -81,11 +82,16 @@ export const router = createBrowserRouter([
       {
         Component: AdminGuard,
         children: [
-          { path: "admin", Component: AdminDashboard },
-          { path: "admin/users", Component: AdminUsers },
-          { path: "admin/revenue", Component: AdminRevenue },
-          { path: "admin/products", Component: AdminProducts },
-          { path: "admin/support", Component: AdminSupport },
+          {
+            Component: AdminLayout,
+            children: [
+              { path: "admin", Component: AdminDashboard },
+              { path: "admin/users", Component: AdminUsers },
+              { path: "admin/revenue", Component: AdminRevenue },
+              { path: "admin/products", Component: AdminProducts },
+              { path: "admin/support", Component: AdminSupport },
+            ],
+          },
         ],
       },
     ],

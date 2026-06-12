@@ -71,7 +71,7 @@ export function AdminSupport() {
       <div className="px-6 pt-12 pb-5 bg-white shadow-sm border-b border-gray-100">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("/admin")}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-6 h-6 text-gray-900" />
           </button>
           <div className="flex items-center gap-2 flex-1">
