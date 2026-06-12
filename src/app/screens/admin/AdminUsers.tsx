@@ -135,17 +135,17 @@ export function AdminUsers() {
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 lg:px-8 py-4 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 px-5 xl:px-8 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 max-w-7xl mx-auto">
           <button onClick={() => navigate("/admin")}
-            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
+            className="xl:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <img src={logoUrl} alt="Clarity" className="lg:hidden h-7 w-auto flex-shrink-0" />
+            <img src={logoUrl} alt="Clarity" className="xl:hidden h-7 w-auto flex-shrink-0" />
             <div className="min-w-0">
-              <span className="lg:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Người dùng</span>
-              <h1 className="hidden lg:block text-xl font-bold text-gray-900">Quản lý người dùng</h1>
+              <span className="xl:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Người dùng</span>
+              <h1 className="hidden xl:block text-xl font-bold text-gray-900">Quản lý người dùng</h1>
               {!loading && (
                 <p className="text-xs text-gray-400 mt-0.5">
                   {users.length} tài khoản · {premiumCount} Premium · {bannedCount} Đã khóa
@@ -164,7 +164,7 @@ export function AdminUsers() {
         </div>
       )}
 
-      <div className="p-5 lg:p-6 max-w-7xl mx-auto space-y-4">
+      <div className="p-5 xl:p-6 max-w-7xl mx-auto space-y-4">
 
         {/* Stats */}
         {!loading && (

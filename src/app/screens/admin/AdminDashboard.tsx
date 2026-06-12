@@ -173,12 +173,12 @@ export function AdminDashboard() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Header ─────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 px-5 lg:px-8 py-3.5 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 px-5 xl:px-8 py-3.5 sticky top-0 z-10">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-2">
-            <img src={logoUrl} alt="Clarity" className="lg:hidden h-8 w-auto" />
-            <span className="lg:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Admin</span>
-            <h1 className="hidden lg:block text-xl font-bold text-gray-900">Dashboard</h1>
+            <img src={logoUrl} alt="Clarity" className="xl:hidden h-8 w-auto" />
+            <span className="xl:hidden text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Admin</span>
+            <h1 className="hidden xl:block text-xl font-bold text-gray-900">Dashboard</h1>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={load} disabled={loading}
@@ -186,7 +186,7 @@ export function AdminDashboard() {
               <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${loading ? "animate-spin" : ""}`} />
             </button>
             <button onClick={() => { logout(); navigate("/login"); }}
-              className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl border border-red-100 transition-colors">
+              className="xl:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl border border-red-100 transition-colors">
               <LogOut className="w-3.5 h-3.5" /> Đăng xuất
             </button>
           </div>
@@ -195,8 +195,8 @@ export function AdminDashboard() {
 
       <div className="p-4 max-w-7xl mx-auto space-y-4">
 
-        {/* ── Quick nav (mobile only – desktop uses sidebar) ── */}
-        <div className="lg:hidden grid grid-cols-4 gap-2">
+        {/* ── Quick nav (hidden when sidebar is visible) ── */}
+        <div className="xl:hidden grid grid-cols-4 gap-2">
           {NAV_ITEMS.map(n => (
             <button key={n.path} onClick={() => navigate(n.path)}
               className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-xs font-semibold transition-all ${n.color}`}>
