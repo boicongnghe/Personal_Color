@@ -139,7 +139,7 @@ export function AdminRevenue() {
       <div className="bg-white border-b border-gray-200 px-5 py-3.5 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/admin")}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
             <ArrowLeft className="w-4 h-4 text-gray-600" />
           </button>
           <div className="flex items-center gap-2 flex-1">
