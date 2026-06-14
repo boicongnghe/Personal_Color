@@ -38,21 +38,23 @@ async function sendEvent(payload: {
   }
 }
 
-export function useAnalytics(): void {
+export function useAnalytics(enabled = true): void {
   const location = useLocation();
   const scrollSentRef = useRef<Set<number>>(new Set());
   const pageRef = useRef<string>('');
 
   // Track page_view on every route change and reset scroll thresholds
   useEffect(() => {
+    if (!enabled) return;
     const page = location.pathname;
     pageRef.current = page;
     scrollSentRef.current = new Set();
     sendEvent({ event: 'page_view', page });
-  }, [location.pathname]);
+  }, [location.pathname, enabled]);
 
   // Track scroll depth — fire once per 25% threshold per page visit
   useEffect(() => {
+    if (!enabled) return;
     const handleScroll = () => {
       const el = document.documentElement;
       const scrollable = el.scrollHeight - el.clientHeight;
@@ -67,10 +69,11 @@ export function useAnalytics(): void {
     };
     document.addEventListener('scroll', handleScroll, { passive: true });
     return () => document.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [enabled]);
 
   // Track clicks on buttons, links, and role="button" elements via delegation
   useEffect(() => {
+    if (!enabled) return;
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const el = target.closest('button, a, [role="button"]') as HTMLElement | null;
@@ -85,10 +88,11 @@ export function useAnalytics(): void {
     };
     document.addEventListener('click', handleClick, { capture: true });
     return () => document.removeEventListener('click', handleClick, { capture: true });
-  }, []);
+  }, [enabled]);
 
   // Track session_end when user leaves or hides the tab
   useEffect(() => {
+    if (!enabled) return;
     const sendSessionEnd = () => {
       const start = parseInt(sessionStorage.getItem('clarity_session_start') || '0', 10);
       const duration = start > 0 ? Date.now() - start : 0;
@@ -103,5 +107,5 @@ export function useAnalytics(): void {
       window.removeEventListener('beforeunload', sendSessionEnd);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [enabled]);
 }
