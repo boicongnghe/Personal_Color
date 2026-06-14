@@ -1,8 +1,11 @@
 import { Outlet, useLocation } from "react-router";
+import { useAnalytics } from "../../hooks/useAnalytics";
 
 export function Root() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
+
+  useAnalytics();
 
   if (isAdmin) {
     return <Outlet />;

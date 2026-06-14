@@ -1,14 +1,15 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { LayoutDashboard, Users, DollarSign, Package, MessageCircle, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, DollarSign, Package, MessageCircle, LogOut, Activity } from "lucide-react";
 import logoUrl from "../../../assets/logo.png";
 import { useAppContext } from "../../context/AppContext";
 
 const NAV_ITEMS = [
-  { path: "/admin",          label: "Dashboard",   icon: LayoutDashboard },
-  { path: "/admin/users",    label: "Người dùng",  icon: Users },
-  { path: "/admin/revenue",  label: "Doanh thu",   icon: DollarSign },
-  { path: "/admin/products", label: "Sản phẩm",    icon: Package },
-  { path: "/admin/support",  label: "Hỗ trợ",      icon: MessageCircle },
+  { path: "/admin",           label: "Dashboard",   icon: LayoutDashboard },
+  { path: "/admin/users",     label: "Người dùng",  icon: Users },
+  { path: "/admin/revenue",   label: "Doanh thu",   icon: DollarSign },
+  { path: "/admin/behavior",  label: "Hành vi",     icon: Activity },
+  { path: "/admin/products",  label: "Sản phẩm",    icon: Package },
+  { path: "/admin/support",   label: "Hỗ trợ",      icon: MessageCircle },
 ];
 
 export function AdminLayout() {

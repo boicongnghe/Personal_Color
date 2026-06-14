@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Users, DollarSign, Sparkles, Crown,
   LogOut, Package, MessageCircle, TrendingUp,
-  RefreshCw,
+  RefreshCw, Activity,
 } from "lucide-react";
 import logoUrl from "../../../assets/logo.png";
 import { useAppContext } from "../../context/AppContext";
@@ -163,9 +163,10 @@ export function AdminDashboard() {
   }));
 
   const NAV_ITEMS = [
-    { label: "Người dùng", icon: <Users className="w-4 h-4" />, path: "/admin/users", color: "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100" },
-    { label: "Doanh thu",  icon: <DollarSign className="w-4 h-4" />, path: "/admin/revenue", color: "text-green-600 border-green-200 bg-green-50 hover:bg-green-100" },
-    { label: "Sản phẩm",  icon: <Package className="w-4 h-4" />, path: "/admin/products", color: "text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100" },
+    { label: "Người dùng", icon: <Users className="w-4 h-4" />,       path: "/admin/users",     color: "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100" },
+    { label: "Doanh thu",  icon: <DollarSign className="w-4 h-4" />,  path: "/admin/revenue",   color: "text-green-600 border-green-200 bg-green-50 hover:bg-green-100" },
+    { label: "Hành vi",    icon: <Activity className="w-4 h-4" />,    path: "/admin/behavior",  color: "text-violet-600 border-violet-200 bg-violet-50 hover:bg-violet-100" },
+    { label: "Sản phẩm",  icon: <Package className="w-4 h-4" />,     path: "/admin/products",  color: "text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100" },
     { label: "Hỗ trợ",    icon: <MessageCircle className="w-4 h-4" />, path: "/admin/support", color: "text-teal-600 border-teal-200 bg-teal-50 hover:bg-teal-100" },
   ];
 
@@ -196,7 +197,7 @@ export function AdminDashboard() {
       <div className="p-4 w-full space-y-4">
 
         {/* ── Quick nav (hidden when sidebar is visible) ── */}
-        <div className="xl:hidden grid grid-cols-4 gap-2">
+        <div className="xl:hidden grid grid-cols-5 gap-2">
           {NAV_ITEMS.map(n => (
             <button key={n.path} onClick={() => navigate(n.path)}
               className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-xs font-semibold transition-all ${n.color}`}>

@@ -9,6 +9,7 @@ import { Terms } from "./screens/Terms";
 import { HelpSupport } from "./screens/HelpSupport";
 import { SupportChat } from "./screens/SupportChat";
 import { AdminSupport } from "./screens/admin/AdminSupport";
+import { AdminBehavior } from "./screens/admin/AdminBehavior";
 import { Home } from "./screens/Home";
 import { FaceScan } from "./screens/FaceScan";
 import { AnalysisResult } from "./screens/AnalysisResult";
@@ -90,6 +91,7 @@ export const router = createBrowserRouter([
               { path: "admin/revenue", Component: AdminRevenue },
               { path: "admin/products", Component: AdminProducts },
               { path: "admin/support", Component: AdminSupport },
+              { path: "admin/behavior", Component: AdminBehavior },
             ],
           },
         ],
