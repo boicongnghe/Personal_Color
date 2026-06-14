@@ -143,6 +143,7 @@ const FLOWS = [
 function getDailyCount(date) {
   const m = date.getUTCMonth(); // 4=May, 5=Jun
   const d = date.getUTCDate();
+  if (m === 5 && d === 10) return 35;               // 10 Jun: viral share spike
   if (m === 4 && d <= 27) return randInt(3, 5);    // 25-27 May: early adopters
   if (m === 4)             return randInt(5, 10);   // 28-31 May: growing
   if (m === 5 && d <= 7)   return randInt(5, 10);   // 01-07 Jun: growing
