@@ -19,6 +19,7 @@ const productRoutes = require('./routes/products');
 const supportRoutes    = require('./routes/support');
 const assistantRoutes      = require('./routes/assistant');
 const conversationRoutes   = require('./routes/conversations');
+const analyticsRoutes      = require('./routes/analytics');
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/support',    supportRoutes);
 app.use('/api/assistant',     assistantRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/analytics',    analyticsRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err.message);

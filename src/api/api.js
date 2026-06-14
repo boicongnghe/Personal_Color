@@ -132,6 +132,7 @@ export const getMySupportMessages = ()              => api.get('/api/support');
 export const getAllSupportMessages = ()             => api.get('/api/support/admin/all');
 export const replyToSupportMessage = (id, reply)   => api.patch(`/api/support/${id}/reply`, { reply });
 
-export const getAdminStats = () => api.get('/api/subscription/admin/stats');
+export const getAdminStats       = () => api.get('/api/subscription/admin/stats');
+export const getAnalyticsMetrics = () => api.get('/api/analytics/metrics');
 
 export default api;
