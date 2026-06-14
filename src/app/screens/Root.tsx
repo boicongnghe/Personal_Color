@@ -5,7 +5,7 @@ export function Root() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
 
-  useAnalytics();
+  useAnalytics(!isAdmin);
 
   if (isAdmin) {
     return <Outlet />;
