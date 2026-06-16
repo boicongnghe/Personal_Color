@@ -222,6 +222,7 @@ export function Wardrobe() {
             </div>
             <button
               onClick={() => navigate("/premium")}
+              data-track="Mở khoá Premium"
               className="bg-white text-amber-600 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-amber-50 transition-colors flex-shrink-0"
             >
               Mở khoá
@@ -235,6 +236,7 @@ export function Wardrobe() {
         <div className="flex gap-3">
           <button
             onClick={() => requirePremium(() => navigate("/add-clothing"))}
+            data-track="Thêm trang phục"
             className={`flex-1 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg transition-all ${
               isPremium
                 ? "bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white hover:shadow-xl"
@@ -300,6 +302,7 @@ export function Wardrobe() {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => navigate("/premium")}
+                data-track="Mở khoá Premium"
                 className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white px-8 py-3.5 rounded-2xl font-bold shadow-xl flex items-center gap-2"
               >
                 <Zap className="w-5 h-5" />
@@ -307,6 +310,7 @@ export function Wardrobe() {
               </motion.button>
               <button
                 onClick={() => navigate("/premium")}
+                data-track="Xem chi tiết gói Premium"
                 className="mt-3 text-purple-600 text-sm font-semibold hover:underline"
               >
                 Xem chi tiết gói Premium →
@@ -584,6 +588,7 @@ export function Wardrobe() {
                           </div>
                           <button
                             onClick={() => onTryOn(item)}
+                            data-track="Thử đồ AI"
                             disabled={isThisLoading}
                             className={`w-full py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
                               isThisLoading
@@ -1096,6 +1101,7 @@ function EditSheet({
 
         <motion.button
           whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={saving}
+          data-track="Lưu thay đổi"
           className="w-full py-4 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold text-lg shadow-xl disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {saving ? "Đang lưu..." : "Lưu thay đổi"}

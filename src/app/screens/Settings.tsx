@@ -30,12 +30,14 @@ export function Settings() {
     right,
     onClick,
     danger,
+    track,
   }: {
     icon: any; iconBg: string; label: string; sub?: string;
-    right?: React.ReactNode; onClick?: () => void; danger?: boolean;
+    right?: React.ReactNode; onClick?: () => void; danger?: boolean; track?: string;
   }) => (
     <button
       onClick={onClick}
+      data-track={track ?? label}
       className={`w-full flex items-center gap-4 px-4 py-3.5 text-left transition-colors ${danger ? "hover:bg-red-50" : "hover:bg-purple-50"}`}
     >
       <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
@@ -119,6 +121,7 @@ export function Settings() {
                 )
               }
               onClick={() => !user.isPremium && navigate("/premium")}
+              track="Nâng cấp Premium"
             />
           </div>
         </div>

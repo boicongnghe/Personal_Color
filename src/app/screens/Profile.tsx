@@ -330,6 +330,7 @@ export function Profile() {
                 }
               </div>
               <button onClick={() => !avatarUploading && fileInputRef.current?.click()}
+                data-track="Đổi ảnh đại diện"
                 className="absolute bottom-0 right-0 w-7 h-7 bg-gray-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-sm">
                 {avatarUploading
                   ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -353,6 +354,7 @@ export function Profile() {
             </div>
             {/* Edit */}
             <button onClick={() => { setEditName(user.name); setEditEmail(user.email); setShowProfileEdit(true); }}
+              data-track="Chỉnh sửa hồ sơ"
               className="absolute top-4 right-4 p-2 bg-gray-50 text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
               <Edit2 className="w-4 h-4" />
             </button>
@@ -440,7 +442,7 @@ export function Profile() {
                   <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
                     {user.avatar ? <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" /> : <UserIcon className="w-10 h-10 text-gray-400" />}
                   </div>
-                  <button onClick={() => !avatarUploading && fileInputRef.current?.click()} className="absolute bottom-0 right-0 w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-sm">
+                  <button onClick={() => !avatarUploading && fileInputRef.current?.click()} data-track="Đổi ảnh đại diện" className="absolute bottom-0 right-0 w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-sm">
                     {avatarUploading
                       ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       : <Camera className="w-4 h-4" />}
@@ -725,6 +727,7 @@ export function Profile() {
                     <div className="flex gap-3">
                       <button onClick={() => setShowBodyPanel(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-2xl font-bold">{t("cancel")}</button>
                       <motion.button whileTap={{ scale: 0.97 }} onClick={handleSaveBody} disabled={bodyLoading}
+                        data-track="Lưu thông tin"
                         className="flex-1 py-3.5 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2">
                         {bodyLoading ? <span className="text-sm">Đang phân tích...</span> : <><Check className="w-4 h-4" /> Lưu thông tin</>}
                       </motion.button>

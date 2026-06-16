@@ -510,6 +510,7 @@ export function SmartAdvisor() {
             <div className="flex flex-wrap gap-2 justify-center">
               {QUICK_PROMPTS.map((qp) => (
                 <button key={qp.label} onClick={() => handleQuickPrompt(qp.context, qp.label)}
+                  data-track="Chọn dịp nhanh"
                   className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-2xl text-sm font-semibold text-gray-700 border border-purple-100 shadow-sm hover:bg-purple-50 hover:border-purple-300 transition-all">
                   <span>{qp.emoji}</span> {qp.label}
                 </button>
@@ -541,6 +542,7 @@ export function SmartAdvisor() {
         <div className="flex gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "none" }}>
           {QUICK_PROMPTS.map((qp) => (
             <button key={qp.label} onClick={() => handleQuickPrompt(qp.context, qp.label)}
+              data-track="Chọn dịp nhanh"
               className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
                 pendingOccasion === qp.context
                   ? "bg-gradient-to-r from-purple-500 to-pink-400 text-white border-transparent shadow-md"
@@ -558,10 +560,10 @@ export function SmartAdvisor() {
           <input ref={fileInputRef}   type="file" accept="image/*"              className="hidden" onChange={handleFile} />
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
           <div className="flex flex-col gap-1.5 flex-shrink-0">
-            <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 bg-purple-100 hover:bg-purple-200 text-purple-600 rounded-2xl flex items-center justify-center transition-colors">
+            <button onClick={() => fileInputRef.current?.click()} data-track="Tải ảnh trang phục" className="w-10 h-10 bg-purple-100 hover:bg-purple-200 text-purple-600 rounded-2xl flex items-center justify-center transition-colors">
               <FolderOpen className="w-5 h-5" />
             </button>
-            <button onClick={openCamera} className="w-10 h-10 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-2xl flex items-center justify-center transition-colors">
+            <button onClick={openCamera} data-track="Chụp ảnh trang phục" className="w-10 h-10 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-2xl flex items-center justify-center transition-colors">
               <Camera className="w-5 h-5" />
             </button>
           </div>
@@ -573,6 +575,7 @@ export function SmartAdvisor() {
               style={{ maxHeight: 120 }} />
           </div>
           <button onClick={() => sendMessage()} disabled={!inputText.trim() && !pendingImage}
+            data-track="Gửi"
             className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl flex items-center justify-center shadow-md hover:shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
             <Send className="w-4 h-4" />
           </button>

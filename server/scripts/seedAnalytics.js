@@ -48,60 +48,84 @@ const PAGE_SCROLL = {
   '/analysis-result': 78,
   '/outfits':         71,
   '/wardrobe':        60,
-  '/premium-upgrade': 82,
+  '/premium':         82,
   '/profile':         48,
   '/smart-advisor':   65,
+  '/style-others':    58,
   '/settings':        40,
+  '/scan-history':    50,
 };
 
 // ─── Per-page weighted click elements ────────────────────────────────────────
+// These must match the real `data-track` / button text wired up in src/app/screens/*.tsx
+// (see useAnalytics.ts — it reads data-track first, falling back to textContent).
 
 const PAGE_CLICKS = {
   '/home': [
-    { w: 9, v: 'Bắt đầu phân tích' },
-    { w: 7, v: 'Quét khuôn mặt' },
-    { w: 5, v: 'Xem gợi ý outfit' },
-    { w: 4, v: 'Tủ đồ của tôi' },
+    { w: 9, v: 'Quét khuôn mặt' },
+    { w: 6, v: 'Xem gợi ý outfit' },
+    { w: 7, v: 'Phân tích màu của tôi' },
+    { w: 5, v: 'Tủ đồ của tôi' },
+    { w: 3, v: 'Trợ lý thông minh' },
+    { w: 3, v: 'Thử đồ AI' },
     { w: 3, v: 'Nâng cấp Premium' },
-    { w: 2, v: 'Trợ lý thông minh' },
   ],
   '/scan': [
-    { w: 8, v: 'Tải ảnh lên' },
-    { w: 6, v: 'Chụp ảnh' },
+    { w: 10, v: 'Mở Camera' },
+    { w: 8,  v: 'Chụp ảnh' },
+    { w: 6,  v: 'Tải ảnh từ thư viện' },
+    { w: 7,  v: 'Phân tích ngay' },
+    { w: 2,  v: 'Chụp lại' },
+    { w: 2,  v: 'Xem lịch sử quét' },
+    { w: 1,  v: 'Mở khoá Premium' },
   ],
   '/analysis-result': [
     { w: 9, v: 'Xem gợi ý outfit' },
-    { w: 5, v: 'Lưu kết quả' },
-    { w: 3, v: 'Bắt đầu phân tích' },
+    { w: 6, v: 'Xem tủ đồ phù hợp' },
+    { w: 4, v: 'Lưu kết quả' },
+    { w: 2, v: 'Chia sẻ kết quả' },
+    { w: 2, v: 'Xem lịch sử quét' },
+    { w: 2, v: 'Nâng cấp Premium' },
   ],
   '/outfits': [
-    { w: 8, v: 'Thêm vào tủ đồ' },
-    { w: 5, v: 'Xem thêm' },
-    { w: 4, v: 'Nâng cấp Premium' },
+    { w: 9, v: 'Mua ngay' },
+    { w: 5, v: 'Yêu thích outfit' },
   ],
   '/wardrobe': [
-    { w: 7, v: 'Thử đồ AI' },
+    { w: 8, v: 'Thử đồ AI' },
     { w: 6, v: 'Thêm trang phục' },
-    { w: 4, v: 'Tải ảnh từ Thư viện' },
+    { w: 3, v: 'Mở khoá Premium' },
+    { w: 2, v: 'Xem chi tiết gói Premium' },
+    { w: 3, v: 'Lưu thay đổi' },
   ],
-  '/premium-upgrade': [
-    { w: 9, v: 'Nâng cấp Premium' },
-    { w: 7, v: 'Mua ngay' },
-    { w: 4, v: 'Xem chi tiết gói' },
+  '/premium': [
+    { w: 8, v: 'Chọn gói Premium' },
+    { w: 6, v: 'Nâng cấp ngay' },
   ],
   '/profile': [
-    { w: 6, v: 'Chỉnh sửa' },
-    { w: 5, v: 'Lưu thay đổi' },
+    { w: 5, v: 'Chỉnh sửa hồ sơ' },
     { w: 3, v: 'Đổi ảnh đại diện' },
+    { w: 4, v: 'Lưu thông tin' },
   ],
   '/smart-advisor': [
-    { w: 8, v: 'Kiểm tra bộ đồ này' },
-    { w: 7, v: 'Tải ảnh trang phục' },
-    { w: 5, v: 'Gửi' },
+    { w: 7, v: 'Chọn dịp nhanh' },
+    { w: 5, v: 'Tải ảnh trang phục' },
+    { w: 3, v: 'Chụp ảnh trang phục' },
+    { w: 6, v: 'Gửi' },
+  ],
+  '/style-others': [
+    { w: 5, v: 'Nâng cấp Premium ngay' },
   ],
   '/settings': [
-    { w: 5, v: 'Lưu cài đặt' },
-    { w: 3, v: 'Đăng xuất' },
+    { w: 4, v: 'Đổi mật khẩu' },
+    { w: 2, v: 'Bảo mật tài khoản' },
+    { w: 3, v: 'Nâng cấp Premium' },
+    { w: 1, v: 'Điều khoản dịch vụ' },
+    { w: 1, v: 'Chính sách bảo mật' },
+    { w: 2, v: 'Đăng xuất' },
+  ],
+  '/scan-history': [
+    { w: 6, v: 'Quét khuôn mặt' },
   ],
 };
 
@@ -117,7 +141,7 @@ const FLOWS = [
   // w=14 → 6 pages: adds SmartAdvisor after wardrobe
   { w: 14, v: ['/home', '/scan', '/analysis-result', '/outfits', '/wardrobe', '/smart-advisor'] },
   // w=10 → 6 pages: sees upgrade page during journey
-  { w: 10, v: ['/home', '/scan', '/analysis-result', '/premium-upgrade', '/outfits', '/wardrobe'] },
+  { w: 10, v: ['/home', '/scan', '/analysis-result', '/premium', '/outfits', '/wardrobe'] },
   // w=9  → 5 pages: return user who already has results
   { w: 9,  v: ['/home', '/outfits', '/wardrobe', '/smart-advisor', '/profile'] },
   // w=8  → 6 pages: full journey ending in profile + settings
@@ -127,7 +151,7 @@ const FLOWS = [
   // w=7  → 6 pages: SmartAdvisor-first session
   { w: 7,  v: ['/home', '/smart-advisor', '/wardrobe', '/outfits', '/analysis-result', '/profile'] },
   // w=6  → 6 pages: upgrade intent from home
-  { w: 6,  v: ['/home', '/premium-upgrade', '/scan', '/analysis-result', '/outfits', '/wardrobe'] },
+  { w: 6,  v: ['/home', '/premium', '/scan', '/analysis-result', '/outfits', '/wardrobe'] },
   // w=6  → 6 pages: wardrobe-first return user
   { w: 6,  v: ['/home', '/wardrobe', '/smart-advisor', '/profile', '/outfits', '/analysis-result'] },
   // w=5  → 6 pages: deep exploration (no home, direct to result)
@@ -135,7 +159,7 @@ const FLOWS = [
   // w=5  → 6 pages: profile + wardrobe session
   { w: 5,  v: ['/home', '/profile', '/wardrobe', '/outfits', '/settings', '/scan'] },
   // w=5  → 8 pages: power-user-style full exploration
-  { w: 5,  v: ['/home', '/scan', '/analysis-result', '/outfits', '/wardrobe', '/premium-upgrade', '/profile', '/smart-advisor'] },
+  { w: 5,  v: ['/home', '/scan', '/analysis-result', '/outfits', '/wardrobe', '/premium', '/profile', '/smart-advisor'] },
 ];
 
 // ─── Daily session count by growth curve ────────────────────────────────────
