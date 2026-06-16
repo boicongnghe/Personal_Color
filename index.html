@@ -2,14 +2,20 @@
   <!DOCTYPE html>
   <html lang="en">
     <head>
-      <!-- Google tag (gtag.js) -->
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-N24N0XJSCK"></script>
+      <!-- Google tag (gtag.js) — production domains only, skip localhost/dev so test traffic doesn't pollute GA -->
       <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
+        var __isProdHost = !/^(localhost|127\.0\.0\.1|.*\.local)$/.test(window.location.hostname);
+        if (__isProdHost) {
+          var __gtagScript = document.createElement('script');
+          __gtagScript.async = true;
+          __gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-N24N0XJSCK';
+          document.head.appendChild(__gtagScript);
 
-        gtag('config', 'G-N24N0XJSCK');
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function(){ window.dataLayer.push(arguments); };
+          window.gtag('js', new Date());
+          window.gtag('config', 'G-N24N0XJSCK');
+        }
       </script>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
