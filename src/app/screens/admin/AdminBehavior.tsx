@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Activity, RefreshCw, MousePointer, Eye, Clock, LayoutGrid } from "lucide-react";
+import { Activity, RefreshCw, MousePointer, Eye, Clock, LayoutGrid, Sparkles } from "lucide-react";
 import { getAnalyticsMetrics } from "../../../api/api";
 
 /* ── Types ─────────────────────────────────────────────── */
@@ -8,6 +8,9 @@ interface BehaviorMetrics {
   avgSessionDuration: number;
   pagesPerSession: number;
   totalSessions: number;
+  ctr: number;
+  totalClicks: number;
+  totalPageViews: number;
   topPages: { page: string; count: number }[];
   topClicks: { element: string; count: number }[];
   scrollDepth: { page: string; avgScroll: number }[];
@@ -188,6 +191,37 @@ export function AdminBehavior() {
           <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
             <span className="flex-1">{error}</span>
             <button onClick={() => setError(null)} className="text-red-400 font-bold">✕</button>
+          </div>
+        )}
+
+        {/* ── AI-generated overview ─────────────────────── */}
+        {!loading && metrics && (
+          <div className="bg-gray-900 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-violet-400" />
+              <h2 className="text-sm font-bold text-white">Thông tin tổng quan do AI tạo</h2>
+            </div>
+            <p className="text-sm text-gray-300 leading-relaxed mb-4">
+              Công thức tính <span className="text-violet-400 font-semibold">CTR (Tỷ lệ nhấp)</span> chuẩn áp dụng cho Google Analytics và Google Ads là:
+            </p>
+            <div className="bg-gray-800/60 rounded-xl py-4 px-4 flex items-center justify-center mb-4">
+              <div className="text-white text-sm font-mono flex items-center gap-2">
+                <span>CTR =</span>
+                <span className="inline-flex flex-col items-center text-xs">
+                  <span className="pb-1 border-b border-gray-400">Tổng số lượt nhấp (Clicks)</span>
+                  <span className="pt-1">Tổng số lần hiển thị (Impressions)</span>
+                </span>
+                <span>× 100%</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Áp dụng vào dữ liệu thực tế: CTR = ({metrics.totalClicks.toLocaleString()} clicks ÷{" "}
+              {metrics.totalPageViews.toLocaleString()} lượt xem trang) × 100% ={" "}
+              <span className="text-violet-400 font-bold">{metrics.ctr}%</span>.{" "}
+              {metrics.ctr >= 50
+                ? "Tỷ lệ tương tác cao — người dùng chủ động bấm vào các nút gợi ý."
+                : "Tỷ lệ tương tác ở mức trung bình — có thể cải thiện thêm vị trí/CTA của các nút bấm."}
+            </p>
           </div>
         )}
 
