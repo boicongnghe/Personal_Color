@@ -209,6 +209,7 @@ export function OutfitRecommendations() {
                       />
                       <button
                         onClick={() => toggleFav(p._id)}
+                        data-track="Yêu thích outfit"
                         className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform"
                       >
                         <Heart
@@ -238,6 +239,7 @@ export function OutfitRecommendations() {
                       </div>
                       <button
                         onClick={() => handleClick(p)}
+                        data-track="Mua ngay"
                         className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-400 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 hover:shadow-md transition-shadow"
                       >
                         <ShoppingBag className="w-3 h-3" />

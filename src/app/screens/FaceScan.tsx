@@ -258,6 +258,7 @@ export function FaceScan() {
           </div>
           <button
             onClick={() => navigate("/scan-history")}
+            data-track="Xem lịch sử quét"
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-purple-600 hover:bg-purple-50 transition-colors"
           >
             <History className="w-5 h-5" />
@@ -278,6 +279,7 @@ export function FaceScan() {
               <p className="text-white/80 text-xs">Nâng cấp Premium để quét không giới hạn</p>
             </div>
             <button onClick={() => navigate("/premium")}
+              data-track="Mở khoá Premium"
               className="bg-white text-amber-600 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-amber-50 transition-colors flex-shrink-0">
               Mở khoá
             </button>
@@ -345,6 +347,7 @@ export function FaceScan() {
                 {isLocked ? (
                   <button
                     onClick={() => navigate("/premium")}
+                    data-track="Mở khoá Premium"
                     className="flex items-center gap-2 bg-yellow-400 text-gray-900 font-bold px-8 py-3.5 rounded-2xl shadow-xl hover:bg-yellow-300 transition-colors"
                   >
                     <Lock className="w-5 h-5" />
@@ -501,6 +504,7 @@ export function FaceScan() {
                   <motion.button
                     whileTap={{ scale: 0.88 }}
                     onClick={capturePhoto}
+                    data-track="Chụp ảnh"
                     className="relative w-18 h-18"
                     style={{ width: 72, height: 72 }}
                   >
@@ -517,6 +521,7 @@ export function FaceScan() {
                   {/* Upload alternate */}
                   <button
                     onClick={() => { stopStream(); setCameraMode("idle"); fileInputRef.current?.click(); }}
+                    data-track="Tải ảnh từ thư viện"
                     className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors"
                   >
                     <ImageIcon className="w-5 h-5 text-white" />
@@ -624,6 +629,7 @@ export function FaceScan() {
             {!isLocked && (
               <button
                 onClick={() => fileInputRef.current?.click()}
+                data-track="Tải ảnh từ thư viện"
                 className="w-full py-3.5 bg-white text-purple-600 rounded-2xl font-semibold border-2 border-purple-200 hover:bg-purple-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
               >
                 <ImageIcon className="w-5 h-5" />
@@ -634,6 +640,7 @@ export function FaceScan() {
             {isLocked && (
               <button
                 onClick={() => navigate("/premium")}
+                data-track="Mở khoá Premium"
                 className="w-full py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2"
               >
                 <Crown className="w-5 h-5" />

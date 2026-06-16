@@ -53,10 +53,10 @@ export function AnalysisResult() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">{t("resultTitle")}</h1>
           <div className="flex gap-2">
-            <button className="w-9 h-9 bg-white rounded-xl shadow-sm flex items-center justify-center hover:bg-purple-50 transition-colors">
+            <button data-track="Lưu kết quả" className="w-9 h-9 bg-white rounded-xl shadow-sm flex items-center justify-center hover:bg-purple-50 transition-colors">
               <Bookmark className="w-4 h-4 text-purple-500" />
             </button>
-            <button className="w-9 h-9 bg-white rounded-xl shadow-sm flex items-center justify-center hover:bg-purple-50 transition-colors">
+            <button data-track="Chia sẻ kết quả" className="w-9 h-9 bg-white rounded-xl shadow-sm flex items-center justify-center hover:bg-purple-50 transition-colors">
               <Share2 className="w-4 h-4 text-purple-500" />
             </button>
           </div>
@@ -306,6 +306,7 @@ export function AnalysisResult() {
             </div>
             <button
               onClick={() => navigate("/premium")}
+              data-track="Nâng cấp Premium"
               className="w-full mt-4 py-3 bg-white text-yellow-600 rounded-xl font-bold text-sm hover:bg-yellow-50 transition-colors shadow-sm"
             >
               {t("upgradeToPremium")} →
@@ -318,6 +319,7 @@ export function AnalysisResult() {
       <div className="px-6 mb-8 space-y-3">
         <button
           onClick={() => navigate("/outfits")}
+          data-track="Xem gợi ý outfit"
           className="w-full flex items-center justify-between gap-3 py-4 px-6 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white rounded-2xl shadow-xl active:scale-[0.98] transition-all"
           style={{ boxShadow: "0 8px 32px rgba(168,85,247,0.4)" }}
         >
@@ -337,12 +339,14 @@ export function AnalysisResult() {
         </button>
         <button
           onClick={() => navigate("/wardrobe")}
+          data-track="Xem tủ đồ phù hợp"
           className="w-full py-4 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-shadow"
         >
           Xem tủ đồ phù hợp →
         </button>
         <button
           onClick={() => navigate("/scan-history")}
+          data-track="Xem lịch sử quét"
           className="w-full py-4 bg-white text-gray-700 rounded-2xl font-semibold border border-gray-200 hover:bg-gray-50 transition-colors"
         >
           Xem lịch sử quét của tôi

@@ -220,6 +220,7 @@ export function PremiumUpgrade() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.08 }}
                 onClick={() => setSelectedPlan(plan.id)}
+                data-track="Chọn gói Premium"
                 className={`w-full relative rounded-2xl overflow-hidden transition-all duration-200 ${
                   isHighlight
                     ? isSelected
@@ -258,6 +259,7 @@ export function PremiumUpgrade() {
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={handleUpgradeClick}
+          data-track="Nâng cấp ngay"
           className="w-full py-4 bg-gradient-to-r from-purple-500 via-pink-400 to-blue-400 text-white rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-shadow flex items-center justify-center gap-2"
         >
           <Zap className="w-5 h-5" />

@@ -14,6 +14,7 @@ export function Home() {
       description: t("scanFace"),
       gradient: "from-blue-500 to-blue-600",
       path: "/scan",
+      track: "Quét khuôn mặt",
     },
     {
       icon: Shirt,
@@ -21,6 +22,7 @@ export function Home() {
       description: t("premiumDesc").substring(0, 30) + "...",
       gradient: "from-purple-500 to-purple-600",
       path: "/outfits",
+      track: "Xem gợi ý outfit",
     },
   ];
 
@@ -29,23 +31,27 @@ export function Home() {
       icon: Palette,
       title: t("myColorAnalysis"),
       path: "/analysis-result",
+      track: "Phân tích màu của tôi",
     },
     {
       icon: Shirt,
       title: t("myWardrobe"),
       path: "/wardrobe",
+      track: "Tủ đồ của tôi",
     },
     {
       icon: Sparkles,
       title: t("smartAdvisor"),
       path: "/smart-advisor",
       premium: true,
+      track: "Trợ lý thông minh",
     },
     {
       icon: TrendingUp,
       title: "Thử đồ AI",
       path: "/style-others",
       premium: true,
+      track: "Thử đồ AI",
     },
   ];
 
@@ -60,6 +66,7 @@ export function Home() {
           </div>
           <button
             onClick={() => navigate("/premium")}
+            data-track="Nâng cấp Premium"
             className="px-4 py-2 bg-gradient-to-r from-yellow-300 to-amber-400 text-white rounded-full font-semibold text-sm flex items-center gap-2 shadow-lg"
           >
             <Crown className="w-4 h-4" />
@@ -73,6 +80,7 @@ export function Home() {
             <button
               key={index}
               onClick={() => navigate(feature.path)}
+              data-track={feature.track}
               className={`w-full p-4 ${index === 0 ? 'bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400' : 'bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300'} rounded-2xl shadow-lg hover:shadow-xl transition-shadow`}
             >
               <div className="flex items-center gap-3">
@@ -98,6 +106,7 @@ export function Home() {
               <button
                 key={index}
                 onClick={() => navigate(action.path)}
+                data-track={action.track}
                 className="relative p-4 bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-purple-100 text-left"
               >
                 {action.premium && (
