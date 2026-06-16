@@ -50,6 +50,13 @@ export function useAnalytics(enabled = true): void {
     pageRef.current = page;
     scrollSentRef.current = new Set();
     sendEvent({ event: 'page_view', page });
+
+    // Mirror page_view to Google Analytics (gtag) since this is an SPA —
+    // gtag only auto-fires page_view on the initial full page load.
+    const gtag = (window as any).gtag;
+    if (typeof gtag === 'function') {
+      gtag('event', 'page_view', { page_path: page, page_location: window.location.href });
+    }
   }, [location.pathname, enabled]);
 
   // Track scroll depth — fire once per 25% threshold per page visit
