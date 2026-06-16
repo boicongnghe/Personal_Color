@@ -60,6 +60,7 @@ const getMetrics = async (req, res, next) => {
       curDurations,
       prevPageCounts,
       prevDurations,
+      totalClicks,
     ] = await Promise.all([
       // All-time: sessions × page_view count
       UserEvent.aggregate([
@@ -122,6 +123,8 @@ const getMetrics = async (req, res, next) => {
         { $match: { event: 'session_end', value: { $gt: 0 }, createdAt: { $gte: day14, $lt: day7 } } },
         { $group: { _id: null, avg: { $avg: '$value' } } },
       ]),
+      // All-time: total click events (for CTR)
+      UserEvent.countDocuments({ event: 'click' }),
     ]);
 
     // ── All-time metrics ──────────────────────────────────────────────
@@ -131,6 +134,7 @@ const getMetrics = async (req, res, next) => {
     const totalPageViews  = allPageCounts.reduce((sum, s) => sum + s.pageViews, 0);
     const pagesPerSession = totalSessions > 0 ? totalPageViews / totalSessions : 0;
     const avgSessionDuration = allDurations[0]?.avg ?? 0;
+    const ctr = totalPageViews > 0 ? (totalClicks / totalPageViews) * 100 : 0;
 
     // ── Current week metrics ──────────────────────────────────────────
     const curTotal       = curPageCounts.length;
@@ -155,6 +159,9 @@ const getMetrics = async (req, res, next) => {
         avgSessionDuration:  Math.round(avgSessionDuration),
         pagesPerSession:     Math.round(pagesPerSession * 10) / 10,
         totalSessions,
+        ctr:                 Math.round(ctr * 10) / 10,
+        totalClicks,
+        totalPageViews,
         topPages:    topPages.map(p => ({ page: p._id, count: p.count })),
         topClicks:   topClicks.map(c => ({ element: c._id, count: c.count })),
         scrollDepth: scrollData.map(s => ({ page: s._id, avgScroll: Math.round(s.avgScroll) })),
