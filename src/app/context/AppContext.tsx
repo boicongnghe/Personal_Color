@@ -820,18 +820,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const registerUser = async (email: string, password: string, displayName: string): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await apiRegister(email, password, displayName);
-      const { token, user: u } = res.data.data;
+      const { token } = res.data.data;
       localStorage.setItem("clarity_token", token);
-      setIsLoggedIn(true);
-      setUser((prev: User) => ({
-        ...prev,
-        name: u.displayName || displayName,
-        email: u.email,
-        role: "user" as UserRole,
-        isPremium: false,
-      }));
+      const meRes = await getMe();
+      applyGetMeData(meRes.data.data);
       return { success: true, message: "Đăng ký thành công" };
     } catch (err: unknown) {
+      localStorage.removeItem("clarity_token");
       const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
         "Đăng ký thất bại";

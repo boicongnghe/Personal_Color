@@ -23,8 +23,16 @@ const analyticsRoutes      = require('./routes/analytics');
 
 const app = express();
 
+// Trust reverse proxy (Nginx/Railway/Render) so rate limiters read the real client IP
+// from X-Forwarded-For instead of the proxy's IP. Without this every user shares one bucket.
+app.set('trust proxy', 1);
+
+const allowedOrigins = process.env.CLIENT_URL
+  ? [process.env.CLIENT_URL, 'http://localhost:5173']
+  : ['http://localhost:5173'];
+
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -35,7 +43,7 @@ app.use(morgan('dev'));
 // Env vars: GLOBAL_RATE_LIMIT (requests), GLOBAL_RATE_WINDOW_MS (window in ms).
 const limiter = rateLimit({
   windowMs: process.env.GLOBAL_RATE_WINDOW_MS ? parseInt(process.env.GLOBAL_RATE_WINDOW_MS) : 15 * 60 * 1000,
-  max: process.env.GLOBAL_RATE_LIMIT ? parseInt(process.env.GLOBAL_RATE_LIMIT) : 100,
+  max: process.env.GLOBAL_RATE_LIMIT ? parseInt(process.env.GLOBAL_RATE_LIMIT) : 500,
   standardHeaders: true,
   legacyHeaders: false,
 });
