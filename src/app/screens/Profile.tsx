@@ -47,6 +47,18 @@ const BODY_TYPE_IMAGES: Record<string, Record<string, string>> = {
   },
 };
 
+const BODY_TYPE_TO_SHAPE_ID: Record<string, string> = {
+  hourglass: "Hourglass",
+  pear: "Pear",
+  apple: "Apple",
+  rectangle: "Rectangle",
+  inverted_triangle: "Inverted Triangle",
+  "inverted-triangle": "Inverted Triangle",
+  trapezoid: "Hourglass",
+  oval: "Apple",
+  triangle: "Pear",
+};
+
 const BUDGETS = [
   { value: "500,000",    label: "< 500k" },
   { value: "1,000,000",  label: "1 triệu" },
@@ -61,6 +73,43 @@ function calcBMI(h: string, w: string) {
   const bmi = wk / (hm * hm);
   let label = bmi < 18.5 ? "Gầy" : bmi < 23 ? "Bình thường" : bmi < 27.5 ? "Thừa cân" : "Béo phì";
   return { value: bmi.toFixed(1), label };
+}
+
+function normalizeBodyShapeId(id?: string | null) {
+  if (!id) return "";
+  return BODY_TYPE_TO_SHAPE_ID[id] ?? id;
+}
+
+function getBodyShapeMeta(gender: "female" | "male", shapeId: string) {
+  const shapes = gender === "male" ? MALE_BODY_SHAPES : FEMALE_BODY_SHAPES;
+  return shapes.find(shape => shape.id === normalizeBodyShapeId(shapeId));
+}
+
+function classifyBodyShapeFromMeasurements(gender: "female" | "male", bustValue: string, waistValue: string, hipsValue: string) {
+  const bust = parseFloat(bustValue);
+  const waist = parseFloat(waistValue);
+  const hips = parseFloat(hipsValue);
+  if (![bust, waist, hips].every(value => Number.isFinite(value) && value > 0)) return null;
+
+  if (gender === "female") {
+    const bustHipDiff = Math.abs(bust - hips);
+    const waistBustRatio = waist / bust;
+    const waistHipRatio = waist / hips;
+    const hipBustDiff = hips - bust;
+
+    if (bustHipDiff <= 5 && waistBustRatio <= 0.75) return "Hourglass";
+    if (hipBustDiff > 3.5 && waistHipRatio < 0.75) return "Pear";
+    if (bust - hips > 3.5) return "Inverted Triangle";
+    if (waistBustRatio > 0.87) return "Apple";
+    return "Rectangle";
+  }
+
+  const shoulderHipDiff = bust - hips;
+  const waistHipRatio = waist / hips;
+  if (shoulderHipDiff > 3 && waistHipRatio < 0.88) return "Hourglass";
+  if (hips - bust > 3) return "Pear";
+  if (waist > bust * 0.9) return "Apple";
+  return "Rectangle";
 }
 
 export function Profile() {
@@ -84,15 +133,15 @@ export function Profile() {
     waist:     user.bodyProfile?.waist?.toString()   ?? "",
     hips:      user.bodyProfile?.hips?.toString()    ?? "",
     age:       user.bodyProfile?.age?.toString()     ?? "",
-    bodyShape: user.bodyProfile?.bodyShape           ?? "Hourglass",
+    bodyShape: normalizeBodyShapeId(user.bodyProfile?.bodyShape ?? user.bodyProfile?.bodyType ?? "Hourglass"),
     budget:    user.bodyProfile?.budget              ?? "1,000,000",
   });
 
   const [bodyResult, setBodyResult] = useState<{
     bodyType: string; label: string; emoji: string; description: string; characteristics: string[]; tips: string;
   } | null>(user.bodyProfile?.bodyType ? {
-    bodyType: user.bodyProfile.bodyType,
-    label: user.bodyProfile.bodyType,
+    bodyType: normalizeBodyShapeId(user.bodyProfile.bodyType),
+    label: normalizeBodyShapeId(user.bodyProfile.bodyType),
     emoji: '',
     description: '',
     characteristics: [],
@@ -104,6 +153,10 @@ export function Profile() {
   const savedBMI = calcBMI(user.bodyProfile?.height?.toString() ?? "", user.bodyProfile?.weight?.toString() ?? "");
   const currentBodyShapes = (user.bodyProfile?.gender ?? "female") === "male" ? MALE_BODY_SHAPES : FEMALE_BODY_SHAPES;
   const currentShape = currentBodyShapes.find(b => b.id === user.bodyProfile?.bodyShape);
+  const liveSuggestedShapeId = classifyBodyShapeFromMeasurements(bodyForm.gender, bodyForm.bust, bodyForm.waist, bodyForm.hips);
+  const selectedShapeId = normalizeBodyShapeId(liveSuggestedShapeId ?? bodyForm.bodyShape);
+  const selectedShape = getBodyShapeMeta(bodyForm.gender, selectedShapeId);
+  const selectedShapeImage = BODY_TYPE_IMAGES[bodyForm.gender]?.[selectedShapeId];
 
   const hasBodyData = !!(user.bodyProfile?.bodyType || user.bodyProfile?.height || user.bodyProfile?.bodyShape);
 
@@ -128,13 +181,14 @@ export function Profile() {
 
   const handleSaveBody = async () => {
     const { gender, height, weight, bust, waist, hips, age, bodyShape, budget } = bodyForm;
+    const effectiveBodyShape = normalizeBodyShapeId(liveSuggestedShapeId ?? bodyShape);
 
     // Validate — bust/waist/hips are optional
     const missing: string[] = [];
     if (!height)    missing.push("Chiều cao");
     if (!weight)    missing.push("Cân nặng");
     if (!age)       missing.push("Tuổi");
-    if (!bodyShape) missing.push("Vóc dáng");
+    if (!effectiveBodyShape) missing.push("Vóc dáng");
     if (!budget)    missing.push("Ngân sách");
 
     if (missing.length > 0) {
@@ -149,7 +203,7 @@ export function Profile() {
       height: parseFloat(height),
       weight: parseFloat(weight),
       age,
-      bodyShape,
+      bodyShape: effectiveBodyShape,
       budget,
       ...(bust  && { bust:  parseFloat(bust)  }),
       ...(waist && { waist: parseFloat(waist) }),
@@ -160,8 +214,9 @@ export function Profile() {
     setBodyLoading(false);
 
     if (result.success && result.bodyType) {
+      const normalizedBodyType = normalizeBodyShapeId(result.bodyType);
       setBodyResult({
-        bodyType:        result.bodyType,
+        bodyType:        normalizedBodyType,
         label:           result.label        ?? result.bodyType,
         emoji:           result.emoji        ?? '',
         description:     result.description  ?? '',
@@ -183,6 +238,7 @@ export function Profile() {
   };
 
   const openBodyPanel = () => {
+    const savedShape = normalizeBodyShapeId(user.bodyProfile?.bodyShape ?? user.bodyProfile?.bodyType ?? "Hourglass");
     setBodyForm({
       gender:    user.bodyProfile?.gender              ?? "female",
       height:    user.bodyProfile?.height?.toString()  ?? "",
@@ -191,11 +247,11 @@ export function Profile() {
       waist:     user.bodyProfile?.waist?.toString()   ?? "",
       hips:      user.bodyProfile?.hips?.toString()    ?? "",
       age:       user.bodyProfile?.age?.toString()     ?? "",
-      bodyShape: user.bodyProfile?.bodyShape           ?? "Hourglass",
+      bodyShape: savedShape,
       budget:    user.bodyProfile?.budget              ?? "1,000,000",
     });
     setBodyResult(user.bodyProfile?.bodyType ? {
-      bodyType: user.bodyProfile.bodyType, label: user.bodyProfile.bodyType,
+      bodyType: normalizeBodyShapeId(user.bodyProfile.bodyType), label: normalizeBodyShapeId(user.bodyProfile.bodyType),
       emoji: '', description: '', characteristics: [], tips: '',
     } : null);
     setShowBodyPanel(true);
@@ -509,6 +565,47 @@ export function Profile() {
               {/* Scrollable */}
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
 
+                {/* Large selected body-shape preview */}
+                {selectedShape && (
+                  <motion.div
+                    key={`${bodyForm.gender}-${selectedShapeId}-${liveSuggestedShapeId ? "suggested" : "manual"}`}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border border-purple-100 rounded-3xl p-4 overflow-hidden"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-28 h-36 bg-white rounded-2xl border border-purple-100 shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {selectedShapeImage ? (
+                          <img
+                            src={selectedShapeImage}
+                            alt={isVi ? selectedShape.labelVi : selectedShape.labelEn}
+                            className="w-full h-full object-contain p-2"
+                          />
+                        ) : (
+                          <span className="text-4xl">{selectedShape.emoji}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-black text-purple-600 uppercase tracking-wide mb-1">
+                          {liveSuggestedShapeId ? "Gợi ý từ số đo 3 vòng" : "Dáng đang chọn"}
+                        </p>
+                        <h3 className="text-xl font-black text-gray-900 leading-tight">
+                          {isVi ? selectedShape.labelVi : selectedShape.labelEn}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{selectedShape.desc}</p>
+                        {liveSuggestedShapeId && bodyForm.bodyShape !== liveSuggestedShapeId && (
+                          <button
+                            onClick={() => setBodyForm({ ...bodyForm, bodyShape: liveSuggestedShapeId })}
+                            className="mt-3 px-3 py-2 bg-white text-purple-700 border border-purple-200 rounded-xl text-xs font-bold shadow-sm"
+                          >
+                            Chọn dáng này
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Body type result — shown after successful classification */}
                 <AnimatePresence>
                   {bodyResult && bodyResult.bodyType && (
@@ -650,14 +747,15 @@ export function Profile() {
                   <div className="space-y-2">
                     {(bodyForm.gender === "male" ? MALE_BODY_SHAPES : FEMALE_BODY_SHAPES).map(shape => {
                       const isActive = bodyForm.bodyShape === shape.id;
+                      const isSuggested = liveSuggestedShapeId === shape.id;
                       return (
                         <motion.button key={shape.id} whileTap={{ scale: 0.98 }}
                           onClick={() => setBodyForm({ ...bodyForm, bodyShape: shape.id })}
                           className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${
-                            isActive ? "border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"
+                            isActive || isSuggested ? "border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"
                           }`}
                         >
-                          <div className={`w-12 h-14 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${isActive ? "bg-white shadow-sm" : "bg-gray-50"}`}>
+                          <div className={`w-12 h-14 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${isActive || isSuggested ? "bg-white shadow-sm" : "bg-gray-50"}`}>
                             {BODY_TYPE_IMAGES[bodyForm.gender]?.[shape.id] ? (
                               <img
                                 src={BODY_TYPE_IMAGES[bodyForm.gender][shape.id]}
@@ -672,6 +770,11 @@ export function Profile() {
                             <p className={`font-bold text-sm ${isActive ? "text-purple-700" : "text-gray-900"}`}>
                               {isVi ? shape.labelVi : shape.labelEn}
                               <span className="ml-1.5 text-gray-400 font-normal text-xs">{isVi ? shape.labelEn : shape.labelVi}</span>
+                              {isSuggested && (
+                                <span className="ml-2 text-[10px] text-purple-600 bg-white border border-purple-200 rounded-full px-2 py-0.5">
+                                  Gợi ý
+                                </span>
+                              )}
                             </p>
                             <p className="text-xs text-gray-400">{shape.desc}</p>
                           </div>
