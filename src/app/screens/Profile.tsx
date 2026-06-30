@@ -9,7 +9,6 @@ import {
 import { BottomNav } from "../components/BottomNav";
 import { useAppContext } from "../context/AppContext";
 import { motion, AnimatePresence } from "motion/react";
-import MannequinSVG from "../components/MannequinSVG";
 
 /* ── Body shape data ──────────────────────────────────────────── */
 const FEMALE_BODY_SHAPES = [
@@ -57,6 +56,23 @@ const BODY_TYPE_TO_SHAPE_ID: Record<string, string> = {
   trapezoid: "Hourglass",
   oval: "Apple",
   triangle: "Pear",
+};
+
+const BODY_SHAPE_MEASURE_HINTS: Record<string, Record<string, [string, string, string]>> = {
+  female: {
+    "Hourglass": ["V1 gần bằng V3", "V2 nhỏ hơn rõ", "V3 gần bằng V1"],
+    "Pear": ["V1 nhỏ hơn V3", "V2 thon", "V3 lớn nhất"],
+    "Apple": ["V1 khá đầy", "V2 gần V1/V3", "V3 vừa phải"],
+    "Rectangle": ["V1 gần V2/V3", "V2 ít chênh", "V3 gần V1"],
+    "Inverted Triangle": ["V1 lớn hơn V3", "V2 vừa phải", "V3 nhỏ hơn V1"],
+  },
+  male: {
+    "Hourglass": ["Ngực/vai rộng", "Eo nhỏ hơn hông", "Hông cân đối"],
+    "Pear": ["Ngực nhỏ hơn hông", "Eo vừa phải", "Hông lớn nhất"],
+    "Apple": ["Ngực khá đầy", "Eo gần/ngang ngực", "Hông vừa phải"],
+    "Rectangle": ["Ngực gần eo/hông", "Eo ít chênh", "Hông gần ngực"],
+    "Inverted Triangle": ["Ngực/vai lớn hơn hông", "Eo gọn", "Hông nhỏ hơn ngực"],
+  },
 };
 
 const BUDGETS = [
@@ -154,11 +170,23 @@ export function Profile() {
   const currentBodyShapes = (user.bodyProfile?.gender ?? "female") === "male" ? MALE_BODY_SHAPES : FEMALE_BODY_SHAPES;
   const currentShape = currentBodyShapes.find(b => b.id === user.bodyProfile?.bodyShape);
   const liveSuggestedShapeId = classifyBodyShapeFromMeasurements(bodyForm.gender, bodyForm.bust, bodyForm.waist, bodyForm.hips);
-  const selectedShapeId = normalizeBodyShapeId(liveSuggestedShapeId ?? bodyForm.bodyShape);
+  const selectedShapeId = normalizeBodyShapeId(bodyForm.bodyShape);
   const selectedShape = getBodyShapeMeta(bodyForm.gender, selectedShapeId);
   const selectedShapeImage = BODY_TYPE_IMAGES[bodyForm.gender]?.[selectedShapeId];
+  const selectedMeasureHints = BODY_SHAPE_MEASURE_HINTS[bodyForm.gender]?.[selectedShapeId];
+  const measureValues = [
+    { label: "Vòng 1", value: bodyForm.bust },
+    { label: "Vòng 2", value: bodyForm.waist },
+    { label: "Vòng 3", value: bodyForm.hips },
+  ];
+  const hasAnyMeasureValue = measureValues.some(item => item.value);
 
   const hasBodyData = !!(user.bodyProfile?.bodyType || user.bodyProfile?.height || user.bodyProfile?.bodyShape);
+
+  useEffect(() => {
+    if (!liveSuggestedShapeId) return;
+    setBodyForm(f => ({ ...f, bodyShape: liveSuggestedShapeId }));
+  }, [liveSuggestedShapeId]);
 
   const handleSaveProfile = () => { updateUser({ name: editName, email: editEmail }); setShowProfileEdit(false); };
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -587,65 +615,41 @@ export function Profile() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[10px] font-black text-purple-600 uppercase tracking-wide mb-1">
-                          {liveSuggestedShapeId ? "Gợi ý từ số đo 3 vòng" : "Dáng đang chọn"}
+                          {liveSuggestedShapeId === selectedShapeId ? "Gợi ý từ số đo 3 vòng" : "Dáng đang chọn"}
                         </p>
                         <h3 className="text-xl font-black text-gray-900 leading-tight">
                           {isVi ? selectedShape.labelVi : selectedShape.labelEn}
                         </h3>
                         <p className="text-xs text-gray-500 mt-1 leading-relaxed">{selectedShape.desc}</p>
-                        {liveSuggestedShapeId && bodyForm.bodyShape !== liveSuggestedShapeId && (
-                          <button
-                            onClick={() => setBodyForm({ ...bodyForm, bodyShape: liveSuggestedShapeId })}
-                            className="mt-3 px-3 py-2 bg-white text-purple-700 border border-purple-200 rounded-xl text-xs font-bold shadow-sm"
-                          >
-                            Chọn dáng này
-                          </button>
-                        )}
                       </div>
                     </div>
-                  </motion.div>
-                )}
-
-                {/* Body type result — shown after successful classification */}
-                <AnimatePresence>
-                  {bodyResult && bodyResult.bodyType && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-4"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        {BODY_TYPE_IMAGES[bodyForm.gender]?.[bodyResult.bodyType] ? (
-                          <img
-                            src={BODY_TYPE_IMAGES[bodyForm.gender][bodyResult.bodyType]}
-                            alt={bodyResult.label}
-                            className="w-16 h-20 object-contain flex-shrink-0"
-                          />
-                        ) : (
-                          <MannequinSVG
-                            gender={bodyForm.gender}
-                            bodyType={bodyResult.bodyType}
-                            season={undefined}
-                            size={80}
-                          />
-                        )}
-                        <div className="flex-1">
-                          <p className="text-xs font-bold text-purple-600 uppercase tracking-wide mb-0.5">Vóc dáng của bạn</p>
-                          <p className="text-lg font-black text-gray-900">{bodyResult.emoji} {bodyResult.label || bodyResult.bodyType}</p>
-                          {bodyResult.tips && (
-                            <p className="text-xs text-gray-500 mt-1">{bodyResult.tips}</p>
-                          )}
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      {measureValues.map(item => (
+                        <div key={item.label} className="bg-white/85 border border-purple-100 rounded-2xl px-2 py-2 text-center shadow-sm">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">{item.label}</p>
+                          <p className="text-sm font-black text-gray-900 mt-0.5">
+                            {item.value ? `${item.value} cm` : "--"}
+                          </p>
                         </div>
-                      </div>
-                      {bodyResult.characteristics.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {bodyResult.characteristics.map((c, i) => (
-                            <span key={i} className="text-[10px] font-semibold bg-white text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full">{c}</span>
+                      ))}
+                    </div>
+                    {selectedMeasureHints && (
+                      <div className="mt-3 bg-white/70 border border-purple-100 rounded-2xl px-3 py-2.5">
+                        <p className="text-[10px] font-black text-purple-600 uppercase tracking-wide mb-2">
+                          {hasAnyMeasureValue ? "So với tỷ lệ dáng mẫu" : "Tỷ lệ dáng mẫu"}
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedMeasureHints.map((hint, index) => (
+                            <div key={hint} className="text-[10px] leading-snug text-gray-600 font-semibold">
+                              <span className="block text-gray-400 font-bold mb-0.5">Vòng {index + 1}</span>
+                              {hint}
+                            </div>
                           ))}
                         </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
 
                 {/* Gender toggle */}
                 <div>
