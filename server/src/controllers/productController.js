@@ -49,9 +49,10 @@ const getProductsForUser = async (req, res, next) => {
     const userId  = req.user._id;
     const scan    = await Scan.findOne({ userId }).sort({ scanDate: -1 });
 
-    const season   = scan?.season                        ?? null;
-    const gender   = req.user.bodyProfile?.gender        ?? null;
-    const occasion = req.query.occasion                  ?? 'all';
+    const season   = scan?.season                         ?? null;
+    const gender   = req.user.bodyProfile?.gender         ?? null;
+    const bodyType = req.user.bodyProfile?.bodyType       ?? null;
+    const occasion = req.query.occasion                   ?? 'all';
 
     const query     = { isActive: true };
     const andClauses = [];
@@ -72,13 +73,15 @@ const getProductsForUser = async (req, res, next) => {
         ],
       });
     }
+    if (bodyType) {
+      andClauses.push({ $or: [{ bodyTypes: bodyType }, { bodyTypes: { $size: 0 } }] });
+    }
     if (occasion && occasion !== 'all') {
       andClauses.push({ $or: [{ occasions: occasion }, { occasions: 'all' }] });
     }
     if (andClauses.length > 0) query.$and = andClauses;
 
-    const limit    = req.user.subscriptionTier === 'premium' ? 20 : 6;
-    const products = await Product.find(query).sort({ createdAt: -1 }).limit(limit);
+    const products = await Product.find(query).sort({ createdAt: -1 });
 
     return res.json({ success: true, data: { products, total: products.length } });
   } catch (err) {

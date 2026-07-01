@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import {
-  ArrowLeft, Camera, ImageIcon, Sparkles, History,
+  ArrowLeft, Camera, Sparkles, History,
   RefreshCw, CheckCircle2, Crown, Lock, Star, Gift,
   CameraOff, ScanFace, X,
 } from "lucide-react";
@@ -27,7 +27,6 @@ export function FaceScan() {
   const videoRef  = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const capturedFileRef = useRef<File | null>(null);
 
   /* ── Lock logic ─────────────────────────────────────────────────── */
@@ -116,16 +115,6 @@ export function FaceScan() {
     openCamera();
   };
 
-  /* ── File upload ─────────────────────────────────────────────────── */
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    capturedFileRef.current = file;
-    stopStream();
-    setCapturedImage(URL.createObjectURL(file));
-    setCameraMode("captured");
-  };
-
   /* ── Guard & analyze ────────────────────────────────────────────── */
   const guardedAnalyze = () => {
     if (isLocked) { navigate("/premium"); return; }
@@ -134,7 +123,7 @@ export function FaceScan() {
 
   const startAnalyze = async () => {
     if (!capturedFileRef.current) {
-      alert("Vui lòng chụp ảnh hoặc tải ảnh lên trước");
+      alert("Vui lòng chụp ảnh trước");
       return;
     }
     setScanning(true);
@@ -241,7 +230,6 @@ export function FaceScan() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 pb-24 flex flex-col">
       {/* Hidden elements */}
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ── Header ── */}
@@ -401,7 +389,7 @@ export function FaceScan() {
                 <div className="text-center">
                   <p className="text-white font-bold mb-1">Không thể truy cập camera</p>
                   <p className="text-white/50 text-xs leading-relaxed">
-                    Bạn đã từ chối quyền camera. Hãy vào Cài đặt trình duyệt để cấp lại quyền, hoặc sử dụng tính năng tải ảnh lên.
+                    Bạn đã từ chối quyền camera. Hãy vào Cài đặt trình duyệt để cấp lại quyền rồi thử chụp lại.
                   </p>
                 </div>
                 <button
@@ -518,14 +506,7 @@ export function FaceScan() {
                     </div>
                   </motion.button>
 
-                  {/* Upload alternate */}
-                  <button
-                    onClick={() => { stopStream(); setCameraMode("idle"); fileInputRef.current?.click(); }}
-                    data-track="Tải ảnh từ thư viện"
-                    className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors"
-                  >
-                    <ImageIcon className="w-5 h-5 text-white" />
-                  </button>
+                  <div className="w-11 h-11" aria-hidden="true" />
                 </div>
 
                 {/* Flash overlay */}
@@ -624,18 +605,6 @@ export function FaceScan() {
                 </div>
               ))}
             </div>
-
-            {/* Upload fallback */}
-            {!isLocked && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                data-track="Tải ảnh từ thư viện"
-                className="w-full py-3.5 bg-white text-purple-600 rounded-2xl font-semibold border-2 border-purple-200 hover:bg-purple-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
-              >
-                <ImageIcon className="w-5 h-5" />
-                Tải ảnh từ thư viện
-              </button>
-            )}
 
             {isLocked && (
               <button
