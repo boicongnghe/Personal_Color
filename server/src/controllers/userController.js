@@ -2,6 +2,23 @@ const User = require('../models/User');
 const Scan = require('../models/Scan');
 const { BODY_TYPES, classifyBodyType } = require('../utils/bodyClassifier');
 
+const BODY_SHAPE_TO_TYPE = {
+  female: {
+    Hourglass: 'hourglass',
+    Pear: 'pear',
+    Apple: 'apple',
+    Rectangle: 'rectangle',
+    'Inverted Triangle': 'inverted_triangle',
+  },
+  male: {
+    Hourglass: 'trapezoid',
+    Pear: 'triangle',
+    Apple: 'oval',
+    Rectangle: 'rectangle',
+    'Inverted Triangle': 'trapezoid',
+  },
+};
+
 const saveBodyProfile = async (req, res, next) => {
   try {
     const { gender, height, weight, bust, waist, hips, age, bodyShape, budget } = req.body;
@@ -38,9 +55,16 @@ const saveBodyProfile = async (req, res, next) => {
     let bodyType = null;
     let typeInfo = null;
 
-    // Auto-classify body type only when all 5 measurements are present
+    // Prefer the user's manual selection. If they do not choose one, auto-classify from measurements.
+    if (bodyShape && BODY_SHAPE_TO_TYPE[gender]?.[bodyShape]) {
+      bodyType = BODY_SHAPE_TO_TYPE[gender][bodyShape];
+      setFields['bodyProfile.bodyType'] = bodyType;
+      typeInfo = BODY_TYPES[gender]?.[bodyType];
+    }
+
+    // Auto-classify body type only when all 5 measurements are present and no manual shape was selected.
     const hasMeasurements = height && weight && bust && waist && hips;
-    if (hasMeasurements) {
+    if (!bodyType && hasMeasurements) {
       const nums = {
         height: parseFloat(height),
         weight: parseFloat(weight),

@@ -138,6 +138,7 @@ export function Profile() {
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showBodyPanel,   setShowBodyPanel]   = useState(false);
   const [zoomBodyImage, setZoomBodyImage] = useState(false);
+  const [bodyShapeManuallyChosen, setBodyShapeManuallyChosen] = useState(false);
   const [editName,  setEditName]  = useState(user.name);
   const [editEmail, setEditEmail] = useState(user.email);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -186,8 +187,9 @@ export function Profile() {
 
   useEffect(() => {
     if (!liveSuggestedShapeId) return;
+    if (bodyShapeManuallyChosen) return;
     setBodyForm(f => ({ ...f, bodyShape: liveSuggestedShapeId }));
-  }, [liveSuggestedShapeId]);
+  }, [bodyShapeManuallyChosen, liveSuggestedShapeId]);
 
   const handleSaveProfile = () => { updateUser({ name: editName, email: editEmail }); setShowProfileEdit(false); };
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,7 +212,7 @@ export function Profile() {
 
   const handleSaveBody = async () => {
     const { gender, height, weight, bust, waist, hips, age, bodyShape, budget } = bodyForm;
-    const effectiveBodyShape = normalizeBodyShapeId(liveSuggestedShapeId ?? bodyShape);
+    const effectiveBodyShape = normalizeBodyShapeId(bodyShape);
 
     // Validate — bust/waist/hips are optional
     const missing: string[] = [];
@@ -268,6 +270,7 @@ export function Profile() {
 
   const openBodyPanel = () => {
     const savedShape = normalizeBodyShapeId(user.bodyProfile?.bodyShape ?? user.bodyProfile?.bodyType ?? "Hourglass");
+    setBodyShapeManuallyChosen(false);
     setBodyForm({
       gender:    user.bodyProfile?.gender              ?? "female",
       height:    user.bodyProfile?.height?.toString()  ?? "",
@@ -668,7 +671,10 @@ export function Profile() {
                     {([['female', '👩 Nữ'], ['male', '👨 Nam']] as const).map(([val, lbl]) => (
                       <button
                         key={val}
-                        onClick={() => setBodyForm(f => ({ ...f, gender: val }))}
+                        onClick={() => {
+                          setBodyShapeManuallyChosen(false);
+                          setBodyForm(f => ({ ...f, gender: val }));
+                        }}
                         className={`flex-1 py-3 rounded-2xl font-bold text-sm border-2 transition-all ${
                           bodyForm.gender === val
                             ? "border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-sm"
@@ -744,7 +750,10 @@ export function Profile() {
                         <input
                           type="number"
                           value={(bodyForm as Record<string, string>)[f.key]}
-                          onChange={e => setBodyForm({ ...bodyForm, [f.key]: e.target.value })}
+                          onChange={e => {
+                            setBodyShapeManuallyChosen(false);
+                            setBodyForm({ ...bodyForm, [f.key]: e.target.value });
+                          }}
                           placeholder={f.placeholder}
                           className="w-full px-2 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-purple-400 font-bold"
                         />
@@ -764,7 +773,10 @@ export function Profile() {
                       const isSuggested = liveSuggestedShapeId === shape.id;
                       return (
                         <motion.button key={shape.id} whileTap={{ scale: 0.98 }}
-                          onClick={() => setBodyForm({ ...bodyForm, bodyShape: shape.id })}
+                          onClick={() => {
+                            setBodyShapeManuallyChosen(true);
+                            setBodyForm({ ...bodyForm, bodyShape: shape.id });
+                          }}
                           className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${
                             isActive || isSuggested ? "border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"
                           }`}
