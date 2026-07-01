@@ -137,6 +137,7 @@ export function Profile() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showBodyPanel,   setShowBodyPanel]   = useState(false);
+  const [zoomBodyImage, setZoomBodyImage] = useState(false);
   const [editName,  setEditName]  = useState(user.name);
   const [editEmail, setEditEmail] = useState(user.email);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -599,10 +600,14 @@ export function Profile() {
                     key={`${bodyForm.gender}-${selectedShapeId}-${liveSuggestedShapeId ? "suggested" : "manual"}`}
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border border-purple-100 rounded-3xl p-4 overflow-hidden"
+                    className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border border-purple-100 rounded-3xl p-3 overflow-hidden"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-28 h-36 bg-white rounded-2xl border border-purple-100 shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="grid grid-cols-2 gap-3 items-stretch">
+                      <button
+                        type="button"
+                        onClick={() => selectedShapeImage && setZoomBodyImage(true)}
+                        className="relative min-h-52 bg-white rounded-2xl border border-purple-100 shadow-sm flex items-center justify-center overflow-hidden active:scale-[0.99] transition-transform"
+                      >
                         {selectedShapeImage ? (
                           <img
                             src={selectedShapeImage}
@@ -610,20 +615,40 @@ export function Profile() {
                             className="w-full h-full object-contain p-2"
                           />
                         ) : (
-                          <span className="text-4xl">{selectedShape.emoji}</span>
+                          <span className="text-5xl">{selectedShape.emoji}</span>
                         )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black text-purple-600 uppercase tracking-wide mb-1">
+                        {selectedShapeImage && (
+                          <span className="absolute bottom-2 right-2 bg-gray-900/75 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                            Phóng to
+                          </span>
+                        )}
+                      </button>
+                      <div className="min-w-0 flex flex-col justify-center">
+                        <p className="text-[9px] font-black text-purple-600 uppercase tracking-wide mb-1">
                           {liveSuggestedShapeId === selectedShapeId ? "Gợi ý từ số đo 3 vòng" : "Dáng đang chọn"}
                         </p>
-                        <h3 className="text-xl font-black text-gray-900 leading-tight">
+                        <h3 className="text-lg font-black text-gray-900 leading-tight">
                           {isVi ? selectedShape.labelVi : selectedShape.labelEn}
                         </h3>
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{selectedShape.desc}</p>
+                        <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{selectedShape.desc}</p>
+                        {selectedMeasureHints && (
+                          <div className="mt-3 bg-white/75 border border-purple-100 rounded-2xl px-3 py-2">
+                            <p className="text-[9px] font-black text-purple-600 uppercase tracking-wide mb-1.5">
+                              {hasAnyMeasureValue ? "So với dáng mẫu" : "Tỷ lệ dáng mẫu"}
+                            </p>
+                            <div className="space-y-1.5">
+                              {selectedMeasureHints.map((hint, index) => (
+                                <div key={hint} className="text-[10px] leading-snug text-gray-600 font-semibold">
+                                  <span className="text-gray-400 font-bold">V{index + 1}: </span>
+                                  {hint}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="mt-3 grid grid-cols-3 gap-2">
                       {measureValues.map(item => (
                         <div key={item.label} className="bg-white/85 border border-purple-100 rounded-2xl px-2 py-2 text-center shadow-sm">
                           <p className="text-[10px] font-bold text-gray-400 uppercase">{item.label}</p>
@@ -633,21 +658,6 @@ export function Profile() {
                         </div>
                       ))}
                     </div>
-                    {selectedMeasureHints && (
-                      <div className="mt-3 bg-white/70 border border-purple-100 rounded-2xl px-3 py-2.5">
-                        <p className="text-[10px] font-black text-purple-600 uppercase tracking-wide mb-2">
-                          {hasAnyMeasureValue ? "So với tỷ lệ dáng mẫu" : "Tỷ lệ dáng mẫu"}
-                        </p>
-                        <div className="grid grid-cols-3 gap-2">
-                          {selectedMeasureHints.map((hint, index) => (
-                            <div key={hint} className="text-[10px] leading-snug text-gray-600 font-semibold">
-                              <span className="block text-gray-400 font-bold mb-0.5">Vòng {index + 1}</span>
-                              {hint}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </motion.div>
                 )}
 
@@ -842,6 +852,43 @@ export function Profile() {
                   </>
                 )}
               </div>
+
+              <AnimatePresence>
+                {zoomBodyImage && selectedShape && selectedShapeImage && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-20 bg-black/70 backdrop-blur-sm flex flex-col"
+                    onClick={() => setZoomBodyImage(false)}
+                  >
+                    <div className="flex-shrink-0 flex items-center justify-between px-5 pt-5 pb-3">
+                      <div>
+                        <p className="text-white/60 text-[10px] font-black uppercase tracking-wide">Dáng đang xem</p>
+                        <p className="text-white text-lg font-black">{isVi ? selectedShape.labelVi : selectedShape.labelEn}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setZoomBodyImage(false)}
+                        className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center"
+                      >
+                        <X className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+                    <div className="flex-1 min-h-0 flex items-center justify-center px-6 pb-8">
+                      <motion.img
+                        initial={{ scale: 0.94 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.94 }}
+                        src={selectedShapeImage}
+                        alt={isVi ? selectedShape.labelVi : selectedShape.labelEn}
+                        className="max-w-full max-h-full object-contain rounded-3xl bg-white shadow-2xl p-4"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}
