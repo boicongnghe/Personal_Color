@@ -20,6 +20,7 @@ const supportRoutes    = require('./routes/support');
 const assistantRoutes      = require('./routes/assistant');
 const conversationRoutes   = require('./routes/conversations');
 const analyticsRoutes      = require('./routes/analytics');
+const { getConfiguredClientUrls } = require('./config/clientUrls');
 
 const app = express();
 
@@ -27,9 +28,7 @@ const app = express();
 // from X-Forwarded-For instead of the proxy's IP. Without this every user shares one bucket.
 app.set('trust proxy', 1);
 
-const allowedOrigins = process.env.CLIENT_URL
-  ? [process.env.CLIENT_URL, 'http://localhost:5173']
-  : ['http://localhost:5173'];
+const allowedOrigins = getConfiguredClientUrls();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: allowedOrigins, credentials: true }));

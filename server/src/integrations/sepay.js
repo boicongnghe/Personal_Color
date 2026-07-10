@@ -1,5 +1,6 @@
 const { SePayPgClient } = require('sepay-pg-node');
 const crypto = require('crypto');
+const { getPrimaryClientUrl } = require('../config/clientUrls');
 
 // Lazy-init: the SDK validates credentials at construction time,
 // so we create the client only when it is first needed.
@@ -33,15 +34,16 @@ function createCheckout({ userId, plan = '1m' }) {
   const selectedPlan   = PLANS[plan] ?? PLANS['1m'];
   const orderInvoice = `CLARITY${userId.toString().slice(-6).toUpperCase()}${Date.now()}`;
   const checkoutURL    = client.checkout.initCheckoutUrl();
+  const clientUrl      = getPrimaryClientUrl();
   const fields         = client.checkout.initOneTimePaymentFields({
     payment_method:       'BANK_TRANSFER',
     order_invoice_number: orderInvoice,
     order_amount:         selectedPlan.amount,
     currency:             'VND',
     order_description:    `Clarity Premium ${selectedPlan.label} - ${userId}`,
-    success_url: `${process.env.CLIENT_URL}/upgrade-success?order=${orderInvoice}`,
-    error_url:   `${process.env.CLIENT_URL}/upgrade-failed`,
-    cancel_url:  `${process.env.CLIENT_URL}/upgrade`,
+    success_url: `${clientUrl}/upgrade-success?order=${orderInvoice}`,
+    error_url:   `${clientUrl}/upgrade-failed`,
+    cancel_url:  `${clientUrl}/upgrade`,
   });
 
   const bin     = process.env.BANK_BIN;

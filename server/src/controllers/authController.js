@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { sendResetPasswordEmail } = require('../utils/mailer');
+const { getPrimaryClientUrl } = require('../config/clientUrls');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -114,7 +115,7 @@ const forgotPassword = async (req, res, next) => {
       resetPasswordExpires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
     });
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${rawToken}`;
+    const resetUrl = `${getPrimaryClientUrl()}/reset-password?token=${rawToken}`;
     await sendResetPasswordEmail(user.email, user.displayName, resetUrl);
 
     return res.json({ success: true, data: { message: 'Email đặt lại mật khẩu đã được gửi.' } });

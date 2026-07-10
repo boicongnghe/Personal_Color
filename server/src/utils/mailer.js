@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { getPrimaryClientUrl } = require('../config/clientUrls');
 
 const transporter = nodemailer.createTransport({
   host:   process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -11,10 +12,11 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendResetPasswordEmail = async (toEmail, displayName, resetUrl) => {
+  const clientUrl = getPrimaryClientUrl();
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
       <div style="background:linear-gradient(135deg,#8b5cf6,#ec4899);padding:32px;text-align:center;">
-        <img src="${process.env.CLIENT_URL}/logo.png" alt="Clarity" width="64" height="64" style="border-radius:16px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;" />
+        <img src="${clientUrl}/logo.png" alt="Clarity" width="64" height="64" style="border-radius:16px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;" />
         <h1 style="color:#fff;margin:0;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Clarity</h1>
         <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:14px;">Ứng dụng phân tích màu sắc cá nhân</p>
       </div>
