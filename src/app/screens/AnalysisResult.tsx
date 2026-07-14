@@ -38,16 +38,34 @@ const temperatureText = (temperature?: string) => {
 };
 
 const clarityText = (chroma?: number) => {
-  if (typeof chroma !== "number") return "Đang đo";
+  if (typeof chroma !== "number") return "Theo kết quả";
   if (chroma >= 18) return "Trong, rõ màu";
   if (chroma >= 12) return "Cân bằng";
   return "Dịu, ít bão hòa";
 };
 
 const lightnessText = (L?: number) => {
-  if (typeof L !== "number") return "Đang đo";
+  if (typeof L !== "number") return "Theo kết quả";
   if (L >= 68) return "Sáng";
   if (L <= 44) return "Trầm";
+  return "Trung bình";
+};
+
+const seasonTemperature = (season?: string) => {
+  if (season === "Autumn" || season === "Spring") return "warm";
+  if (season === "Summer" || season === "Winter") return "cool";
+  return "neutral";
+};
+
+const seasonClarity = (season?: string) => {
+  if (season === "Spring" || season === "Winter") return "Trong, rõ màu";
+  if (season === "Summer") return "Dịu, ít bão hòa";
+  return "Cân bằng ấm";
+};
+
+const seasonLightness = (season?: string) => {
+  if (season === "Spring" || season === "Summer") return "Sáng vừa";
+  if (season === "Winter") return "Trầm rõ";
   return "Trung bình";
 };
 
@@ -55,11 +73,11 @@ const whySeason = (
   season: string,
   undertone: string,
   contrast: string,
-  metrics?: { L?: number; chroma?: number; temperature?: string }
+  profile: { temperatureLabel: string; lightnessLabel: string; clarityLabel: string }
 ) => {
-  const temp = temperatureText(metrics?.temperature).toLowerCase();
-  const light = lightnessText(metrics?.L).toLowerCase();
-  const clarity = clarityText(metrics?.chroma).toLowerCase();
+  const temp = profile.temperatureLabel.toLowerCase();
+  const light = profile.lightnessLabel.toLowerCase();
+  const clarity = profile.clarityLabel.toLowerCase();
   return `Kết quả nghiêng về ${season} vì sắc da ${temp}, độ sáng ${light} và mức màu ${clarity}. Nhóm này khớp với ${undertone.toLowerCase()} cùng độ tương phản ${contrast.toLowerCase()}.`;
 };
 
@@ -100,9 +118,16 @@ export function AnalysisResult() {
   };
   const metrics = scanMeta.rawMetrics;
   const confidence = scanMeta.accuracy ?? result?.confidence ?? 0;
-  const warmthPercent = metricPercent(metrics?.warmth, -4, 16);
+  const displayTemperature = metrics?.temperature ?? seasonTemperature(result?.season);
+  const displayLightness = typeof metrics?.L === "number" ? lightnessText(metrics.L) : seasonLightness(result?.season);
+  const displayClarity = typeof metrics?.chroma === "number" ? clarityText(metrics.chroma) : seasonClarity(result?.season);
+  const warmthPercent = typeof metrics?.warmth === "number"
+    ? metricPercent(metrics.warmth, -4, 16)
+    : (displayTemperature === "warm" ? 78 : displayTemperature === "cool" ? 24 : 50);
   const lightnessPercent = metricPercent(metrics?.L, 25, 82);
-  const clarityPercent = metricPercent(metrics?.chroma, 4, 24);
+  const clarityPercent = typeof metrics?.chroma === "number"
+    ? metricPercent(metrics.chroma, 4, 24)
+    : (result?.season === "Spring" || result?.season === "Winter" ? 78 : result?.season === "Summer" ? 34 : 55);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-nav">
@@ -228,14 +253,18 @@ export function AnalysisResult() {
             <h3 className="text-xl font-bold text-gray-900">Vì sao ra nhóm màu này?</h3>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed mb-4">
-            {result ? whySeason(SEASON_VI[result.season] ?? result.season, undertone, contrast, metrics) : ""}
+            {result ? whySeason(SEASON_VI[result.season] ?? result.season, undertone, contrast, {
+              temperatureLabel: temperatureText(displayTemperature),
+              lightnessLabel: displayLightness,
+              clarityLabel: displayClarity,
+            }) : ""}
           </p>
 
           <div className="space-y-3">
             {[
-              { icon: ThermometerSun, label: "Độ ấm / lạnh", value: temperatureText(metrics?.temperature), percent: warmthPercent, left: "Lạnh", right: "Ấm", color: "from-sky-400 to-amber-400" },
-              { icon: SunMedium, label: "Độ sáng / trầm", value: lightnessText(metrics?.L), percent: lightnessPercent, left: "Trầm", right: "Sáng", color: "from-slate-500 to-yellow-300" },
-              { icon: Waves, label: "Độ trong / dịu", value: clarityText(metrics?.chroma), percent: clarityPercent, left: "Dịu", right: "Trong", color: "from-stone-300 to-fuchsia-400" },
+              { icon: ThermometerSun, label: "Độ ấm / lạnh", value: temperatureText(displayTemperature), percent: warmthPercent, left: "Lạnh", right: "Ấm", color: "from-sky-400 to-amber-400" },
+              { icon: SunMedium, label: "Độ sáng / trầm", value: displayLightness, percent: lightnessPercent, left: "Trầm", right: "Sáng", color: "from-slate-500 to-yellow-300" },
+              { icon: Waves, label: "Độ trong / dịu", value: displayClarity, percent: clarityPercent, left: "Dịu", right: "Trong", color: "from-stone-300 to-fuchsia-400" },
             ].map((item, i) => (
               <motion.div
                 key={item.label}
@@ -269,13 +298,26 @@ export function AnalysisResult() {
 
           <div className="grid grid-cols-3 gap-2 mt-4">
             {[
-              { label: "Mẫu da", value: metrics?.sampleCount ? `${metrics.sampleCount}` : "N/A" },
-              { label: "Warmth", value: typeof metrics?.warmth === "number" ? metrics.warmth.toFixed(1) : "N/A" },
-              { label: "Chroma", value: typeof metrics?.chroma === "number" ? metrics.chroma.toFixed(1) : "N/A" },
+              {
+                label: "Vùng da",
+                value: metrics?.sampleCount ? `${metrics.sampleCount} mẫu` : "Theo kết quả",
+                note: metrics?.sampleCount ? "điểm ảnh sạch" : "quét cũ",
+              },
+              {
+                label: "Sắc độ",
+                value: temperatureText(displayTemperature),
+                note: typeof metrics?.warmth === "number" ? `warmth ${metrics.warmth.toFixed(1)}` : "suy theo mùa",
+              },
+              {
+                label: "Độ màu",
+                value: displayClarity,
+                note: typeof metrics?.chroma === "number" ? `chroma ${metrics.chroma.toFixed(1)}` : "suy theo mùa",
+              },
             ].map((item) => (
-              <div key={item.label} className="rounded-2xl bg-purple-50 px-3 py-2 border border-purple-100">
-                <p className="text-[10px] uppercase font-bold text-purple-400">{item.label}</p>
-                <p className="text-sm font-bold text-purple-900 mt-0.5">{item.value}</p>
+              <div key={item.label} className="rounded-2xl bg-gradient-to-b from-purple-50 to-white px-3 py-2.5 border border-purple-100 shadow-sm min-h-[82px]">
+                <p className="text-[10px] uppercase font-bold text-purple-400 leading-tight">{item.label}</p>
+                <p className="text-sm font-bold text-purple-950 mt-1 leading-snug">{item.value}</p>
+                <p className="text-[10px] text-purple-400 mt-0.5 leading-tight">{item.note}</p>
               </div>
             ))}
           </div>

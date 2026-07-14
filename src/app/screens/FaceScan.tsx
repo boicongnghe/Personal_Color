@@ -21,6 +21,15 @@ const SCAN_GUIDES = [
   "Nhìn thẳng camera, giữ máy ổn định khi chụp",
 ];
 
+const dataUrlToFile = (dataUrl: string, filename: string) => {
+  const [meta, base64] = dataUrl.split(",");
+  const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], filename, { type: mime });
+};
+
 export function FaceScan() {
   const navigate = useNavigate();
   const { t, addScanHistory, scanHistory, user, setLastScanResultId, setLastScanResultMeta } = useAppContext();
@@ -41,13 +50,6 @@ export function FaceScan() {
   const isFirstFree = !user.isPremium && scanHistory.length === 0;
 
   /* ── Pick non-repeating color type ─────────────────────────────── */
-  const pickColorType = () => {
-    const usedIds = new Set(scanHistory.map(s => s.colorTypeId));
-    const unused  = COLOR_TYPES.filter(ct => !usedIds.has(ct.id));
-    const pool    = unused.length > 0 ? unused : COLOR_TYPES;
-    return pool[Math.floor(Math.random() * pool.length)];
-  };
-
   /* ── Stop stream helper ─────────────────────────────────────────── */
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -104,13 +106,9 @@ export function FaceScan() {
     ctx.restore();
 
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    capturedFileRef.current = dataUrlToFile(dataUrl, "photo.jpg");
     setCapturedImage(dataUrl);
     setCameraMode("captured");
-
-    // Save as File for API upload
-    canvas.toBlob((blob) => {
-      if (blob) capturedFileRef.current = new File([blob], "photo.jpg", { type: "image/jpeg" });
-    }, "image/jpeg", 0.92);
 
     stopStream();
   };
@@ -487,17 +485,12 @@ export function FaceScan() {
                 </div>
 
                 {/* Instruction label */}
-                <div className="absolute bottom-24 inset-x-4">
-                  <div className="bg-black/55 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/15 shadow-lg">
-                    <p className="text-white text-xs font-bold text-center mb-2">Đưa mặt vào khung, bỏ kính/khẩu trang trước khi chụp</p>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                      {SCAN_GUIDES.slice(0, 4).map((guide) => (
-                        <div key={guide} className="flex items-start gap-1.5 min-w-0">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0 mt-0.5" />
-                          <span className="text-[10px] leading-snug text-white/80">{guide}</span>
-                        </div>
-                      ))}
-                    </div>
+                <div className="absolute bottom-20 inset-x-5">
+                  <div className="bg-black/45 backdrop-blur-md rounded-full px-3 py-2 border border-white/15 shadow-lg flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+                    <p className="text-white text-[11px] font-semibold text-center leading-tight">
+                      Mặt trong khung oval · bỏ kính/khẩu trang · ánh sáng đều
+                    </p>
                   </div>
                 </div>
 
@@ -575,25 +568,6 @@ export function FaceScan() {
                   <div className="bg-white/95 backdrop-blur-sm px-5 py-2 rounded-full flex items-center gap-2 shadow-lg">
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
                     <span className="text-sm font-bold text-gray-900">Ảnh đã sẵn sàng phân tích!</span>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="absolute left-4 right-4 bottom-24"
-                >
-                  <div className="bg-black/55 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/15">
-                    <p className="text-white text-xs font-bold mb-2">Kiểm tra nhanh trước khi phân tích</p>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                      {["Mặt rõ trong khung", "Không kính/khẩu trang", "Ánh sáng đều", "Ảnh không bị rung"].map((item) => (
-                        <div key={item} className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />
-                          <span className="text-[10px] text-white/80">{item}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </motion.div>
 
