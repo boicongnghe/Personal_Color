@@ -339,7 +339,7 @@ export function Profile() {
 
   const settingsMenu: MenuItem[] = [
     { icon: Settings,    label: t("settings"),                  path: "/settings" },
-    { icon: HelpCircle,  label: "Trung tâm hỗ trợ", description: "Gửi tin nhắn — đội ngũ phản hồi 24h", path: "/support" },
+    { icon: HelpCircle,  label: "Trung tâm hỗ trợ", description: "Gửi tin nhắn - đội ngũ phản hồi 24h", path: "/support" },
   ];
 
   const renderMenu = (items: MenuItem[]) =>
@@ -502,7 +502,7 @@ export function Profile() {
           {t("logout")}
         </button>
 
-        <p className="text-center text-gray-400 text-xs font-medium mt-8 mb-4">Clarity v1.0.0</p>
+        <p className="text-center text-gray-400 text-xs font-medium mt-8 mb-4">v3.0.2</p>
       </div>
 
       {/* ════════════════════════════════════════════ */}

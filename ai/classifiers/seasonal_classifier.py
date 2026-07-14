@@ -1,97 +1,139 @@
 import math
 
-# (L_center, a_center, b_center, undertone) for nearest-centroid fallback
-CENTROIDS = {
-    'autumn-warm':   (52,  12, 16, 'warm'),
-    'autumn-deep':   (35,   8, 12, 'warm'),
-    'autumn-rich':   (49,  10, 18, 'warm'),
-    'autumn-muted':  (54,   5,  9, 'neutral'),
-    'winter-cool':   (40,   1,  2, 'cool'),
-    'winter-dark':   (33,   2,  4, 'cool'),
-    'winter-bright': (60,   0,  1, 'cool'),
-    'winter-clear':  (65,   2,  3, 'cool'),
-    'spring-warm':   (71,  10, 20, 'warm'),
-    'spring-light':  (74,   6, 14, 'warm'),
-    'spring-bright': (77,   8, 18, 'warm'),
-    'spring-clear':  (79,   6, 15, 'neutral'),
-    'summer-cool':   (60,   2,  4, 'cool'),
-    'summer-light':  (70,   3,  6, 'cool'),
-    'summer-soft':   (55,   5,  8, 'cool'),
-    'summer-muted':  (52,   3,  6, 'cool'),
+# The React app currently supports these 12 result ids:
+# warm-autumn, deep-autumn, soft-autumn, true-autumn,
+# cool-summer, light-summer, soft-summer,
+# warm-spring, light-spring, true-spring,
+# cool-winter, deep-winter.
+#
+# Backend returns "season-subtype" (for example autumn-warm), and the
+# frontend reverses it to find the matching id.
+
+PROFILES = {
+    "autumn-warm":  {"L": 55, "a": 10, "b": 17, "chroma": 20, "warmth": 12, "undertone": "warm"},
+    "autumn-deep":  {"L": 38, "a": 8,  "b": 13, "chroma": 16, "warmth": 9,  "undertone": "warm"},
+    "autumn-soft":  {"L": 54, "a": 6,  "b": 10, "chroma": 11, "warmth": 7,  "undertone": "neutral"},
+    "autumn-true":  {"L": 49, "a": 10, "b": 18, "chroma": 20, "warmth": 13, "undertone": "warm"},
+    "summer-cool":  {"L": 59, "a": 4,  "b": 5,  "chroma": 7,  "warmth": 2,  "undertone": "cool"},
+    "summer-light": {"L": 70, "a": 4,  "b": 7,  "chroma": 9,  "warmth": 4,  "undertone": "cool"},
+    "summer-soft":  {"L": 55, "a": 5,  "b": 8,  "chroma": 10, "warmth": 5,  "undertone": "neutral"},
+    "spring-warm":  {"L": 66, "a": 9,  "b": 17, "chroma": 20, "warmth": 13, "undertone": "warm"},
+    "spring-light": {"L": 74, "a": 6,  "b": 13, "chroma": 15, "warmth": 10, "undertone": "warm"},
+    "spring-true":  {"L": 70, "a": 10, "b": 20, "chroma": 23, "warmth": 15, "undertone": "warm"},
+    "winter-cool":  {"L": 50, "a": 3,  "b": 2,  "chroma": 8,  "warmth": 0,  "undertone": "cool"},
+    "winter-deep":  {"L": 35, "a": 4,  "b": 5,  "chroma": 10, "warmth": 2,  "undertone": "cool"},
 }
 
-# Explicit rules for all 16 seasonal types
-# Each rule: (name, undertone, a_check, b_check, L_lo, L_hi)
-# a_check / b_check: ('min', v) | ('max', v) | ('range', lo, hi)
-RULES = [
-    # Autumn
-    ('autumn-warm',  'warm',    ('min', 8),        ('min', 10),        38, 65),
-    ('autumn-deep',  'warm',    ('min', 5),        ('min', 8),         25, 45),
-    ('autumn-rich',  'warm',    ('min', 6),        ('min', 12),        40, 58),
-    ('autumn-muted', 'neutral', ('range', 3, 8),   ('range', 6, 12),   45, 62),
-    # Winter
-    ('winter-cool',  'cool',    ('max', 3),        ('max', 5),         25, 55),
-    ('winter-dark',  'cool',    ('max', 4),        ('max', 8),         20, 45),
-    ('winter-bright','cool',    ('max', 2),        ('max', 3),         50, 70),
-    ('winter-clear', 'cool',    ('max', 5),        ('max', 6),         55, 75),
-    # Spring
-    ('spring-warm',  'warm',    ('min', 7),        ('min', 15),        62, 80),
-    ('spring-light', 'warm',    ('range', 4, 9),   ('range', 10, 18),  65, 82),
-    ('spring-bright','warm',    ('min', 5),        ('min', 14),        68, 85),
-    ('spring-clear', 'neutral', ('min', 4),        ('min', 12),        70, 88),
-    # Summer (cool, muted/soft — lower a and b than spring/autumn)
-    ('summer-cool',  'cool',    ('range', 1, 4),   ('range', 2, 7),    52, 68),
-    ('summer-light', 'cool',    ('range', 1, 5),   ('range', 3, 9),    62, 78),
-    ('summer-soft',  'cool',    ('range', 2, 7),   ('range', 4, 10),   46, 62),
-    ('summer-muted', 'cool',    ('range', 1, 5),   ('range', 3, 8),    44, 60),
-]
+
+def _clamp(value, lo, hi):
+    return max(lo, min(hi, value))
 
 
-def _passes(val, check):
-    if check[0] == 'min':   return val >= check[1]
-    if check[0] == 'max':   return val <= check[1]
-    if check[0] == 'range': return check[1] <= val <= check[2]
-    return True
+def _features(L: float, a: float, b: float) -> dict:
+    chroma = math.sqrt((a * a) + (b * b))
+    warmth = b - (0.55 * a)
+    return {
+        "L": L,
+        "a": a,
+        "b": b,
+        "chroma": chroma,
+        "warmth": warmth,
+    }
 
 
-def _score(val, check, lo, hi):
-    center = (lo + hi) / 2
-    half   = max((hi - lo) / 2, 1)
-    l_score = max(0.0, 1 - abs(val - center) / half)
+def _distance(f: dict, profile: dict) -> float:
+    # Weights are tuned for face-scan photos where lighting shifts L more than
+    # a/b. Warmth and chroma stabilize the result under indoor light.
+    return math.sqrt(
+        ((f["L"] - profile["L"]) / 13.0) ** 2 * 1.2
+        + ((f["a"] - profile["a"]) / 6.5) ** 2 * 0.8
+        + ((f["b"] - profile["b"]) / 8.0) ** 2 * 0.8
+        + ((f["chroma"] - profile["chroma"]) / 8.0) ** 2 * 1.0
+        + ((f["warmth"] - profile["warmth"]) / 6.0) ** 2 * 1.4
+    )
 
-    if check[0] == 'min':
-        ab_score = min(1.0, (val - check[1]) / max(check[1], 1))
-    elif check[0] == 'max':
-        ab_score = min(1.0, (check[1] - val) / max(check[1], 1))
+
+def _temperature_bucket(f: dict) -> str:
+    if f["warmth"] >= 8.0 and f["b"] >= 9.0:
+        return "warm"
+    if f["warmth"] <= 3.0 or (f["b"] <= 6.0 and f["a"] <= 6.0):
+        return "cool"
+    return "neutral"
+
+
+def _allowed_profiles(f: dict) -> list:
+    temp = _temperature_bucket(f)
+    light = f["L"] >= 66
+    deep = f["L"] <= 43
+    soft = f["chroma"] <= 12
+
+    if temp == "warm":
+        allowed = ["autumn-warm", "autumn-true", "spring-warm", "spring-true"]
+        if light:
+            allowed.extend(["spring-light", "summer-light"])
+        if deep:
+            allowed.extend(["autumn-deep", "winter-deep"])
+        if soft:
+            allowed.extend(["autumn-soft", "summer-soft"])
+        return allowed
+
+    if temp == "cool":
+        allowed = ["summer-cool", "winter-cool"]
+        if light:
+            allowed.extend(["summer-light", "spring-light"])
+        if deep:
+            allowed.extend(["winter-deep", "autumn-deep"])
+        if soft:
+            allowed.extend(["summer-soft", "autumn-soft"])
+        return allowed
+
+    allowed = ["autumn-soft", "summer-soft", "summer-cool"]
+    if light:
+        allowed.extend(["summer-light", "spring-light"])
+    if deep:
+        allowed.extend(["winter-deep", "autumn-deep"])
+    if f["warmth"] >= 5.5:
+        allowed.extend(["autumn-warm", "spring-warm"])
     else:
-        c2 = (check[1] + check[2]) / 2
-        h2 = max((check[2] - check[1]) / 2, 1)
-        ab_score = max(0.0, 1 - abs(val - c2) / h2)
-    return l_score, ab_score
+        allowed.extend(["winter-cool"])
+    return allowed
 
 
 def classify_season(L: float, a: float, b: float) -> dict:
-    candidates = []
-    for name, undertone, a_check, b_check, L_lo, L_hi in RULES:
-        if _passes(a, a_check) and _passes(b, b_check) and L_lo <= L <= L_hi:
-            l_sc, _  = _score(L, ('range', L_lo, L_hi), L_lo, L_hi)
-            _, a_sc  = _score(a, a_check, L_lo, L_hi)
-            _, b_sc  = _score(b, b_check, L_lo, L_hi)
-            composite = l_sc * 0.4 + a_sc * 0.3 + b_sc * 0.3
-            candidates.append((name, undertone, composite))
+    f = _features(L, a, b)
+    allowed = list(dict.fromkeys(_allowed_profiles(f)))
 
-    if candidates:
-        best = max(candidates, key=lambda x: x[2])
-        confidence = min(95, max(60, int(best[2] * 100)))
-        return {'season': best[0], 'undertone': best[1], 'confidence': confidence}
+    ranked = sorted(
+        ((name, _distance(f, PROFILES[name])) for name in allowed),
+        key=lambda item: item[1],
+    )
+    best_name, best_dist = ranked[0]
+    second_dist = ranked[1][1] if len(ranked) > 1 else best_dist + 1.0
 
-    # Nearest centroid fallback — includes summer types
-    best_name, best_dist = None, float('inf')
-    for name, (cL, ca, cb, _) in CENTROIDS.items():
-        dist = math.sqrt((L - cL) ** 2 + (a - ca) ** 2 + (b - cb) ** 2)
-        if dist < best_dist:
-            best_dist, best_name = dist, name
+    # Deep/light guardrails prevent indoor exposure from pushing a very dark or
+    # very light complexion into the wrong seasonal family.
+    if f["L"] <= 34 and "winter-deep" in allowed and f["warmth"] < 5:
+        best_name = "winter-deep"
+        best_dist = _distance(f, PROFILES[best_name])
+    elif f["L"] <= 38 and f["warmth"] >= 6:
+        best_name = "autumn-deep"
+        best_dist = _distance(f, PROFILES[best_name])
+    elif f["L"] >= 74 and f["warmth"] >= 7:
+        best_name = "spring-light"
+        best_dist = _distance(f, PROFILES[best_name])
+    elif f["L"] >= 70 and f["warmth"] < 6:
+        best_name = "summer-light"
+        best_dist = _distance(f, PROFILES[best_name])
 
-    undertone = CENTROIDS[best_name][3]
-    confidence = max(30, min(58, int(100 - best_dist)))
-    return {'season': best_name, 'undertone': undertone, 'confidence': confidence}
+    profile = PROFILES[best_name]
+    margin = max(0.0, second_dist - best_dist)
+    confidence = int(_clamp(92 - best_dist * 18 + margin * 8, 56, 96))
+
+    return {
+        "season": best_name,
+        "undertone": profile["undertone"],
+        "confidence": confidence,
+        "temperature": _temperature_bucket(f),
+        "chroma": round(f["chroma"], 2),
+        "warmth": round(f["warmth"], 2),
+    }

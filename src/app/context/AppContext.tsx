@@ -66,6 +66,23 @@ export type ScanHistoryItem = {
   colorType: string;
   colorTypeId: string;
   image: string;
+  accuracy?: number;
+  rawMetrics?: ScanRawMetrics;
+};
+
+export type ScanRawMetrics = {
+  L?: number;
+  a?: number;
+  b?: number;
+  chroma?: number;
+  warmth?: number;
+  temperature?: "warm" | "cool" | "neutral" | string;
+  sampleCount?: number;
+};
+
+export type ScanResultMeta = {
+  accuracy?: number;
+  rawMetrics?: ScanRawMetrics;
 };
 
 export type BankInfo = {
@@ -102,6 +119,8 @@ type AppContextType = {
   toggleFavoriteOutfit: (id: string) => void;
   lastScanResultId: string | null;
   setLastScanResultId: (id: string | null) => void;
+  lastScanResultMeta: ScanResultMeta | null;
+  setLastScanResultMeta: (meta: ScanResultMeta | null) => void;
   saveBodyProfile: (data: { gender: 'female' | 'male'; height?: number; weight?: number; bust?: number; waist?: number; hips?: number; age?: string | number; bodyShape?: string; budget?: string }) => Promise<{ success: boolean; bodyType?: string; label?: string; emoji?: string; description?: string; characteristics?: string[]; tips?: string }>;
   uploadAvatar: (file: File) => Promise<{ success: boolean; avatarUrl?: string }>;
 };
@@ -558,6 +577,8 @@ const defaultContextValue: AppContextType = {
   toggleFavoriteOutfit: () => {},
   lastScanResultId: null,
   setLastScanResultId: () => {},
+  lastScanResultMeta: null,
+  setLastScanResultMeta: () => {},
   saveBodyProfile: () => Promise.resolve({ success: false }),
   uploadAvatar: () => Promise.resolve({ success: false }),
 };
@@ -729,7 +750,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       .catch(() => {});
   };
 
-  const buildScanItems = (apiScans: Array<{ _id: string; season: string; scanDate: string; photoUrl?: string }>): ScanHistoryItem[] =>
+  const buildScanItems = (apiScans: Array<{ _id: string; season: string; scanDate: string; photoUrl?: string; accuracy?: number; rawMetrics?: ScanRawMetrics }>): ScanHistoryItem[] =>
     apiScans.map((scan) => {
       const colorTypeId = scan.season.split("-").reverse().join("-");
       const ct = COLOR_TYPES.find((c) => c.id === colorTypeId) || COLOR_TYPES[0];
@@ -739,6 +760,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         colorType: ct.nameVi,
         colorTypeId: ct.id,
         image: scan.photoUrl ? resolveImg(scan.photoUrl) : ct.sampleImage,
+        accuracy: scan.accuracy,
+        rawMetrics: scan.rawMetrics,
       };
     });
 
@@ -782,6 +805,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const [lastScanResultId, setLastScanResultId] = useState<string | null>(null);
+  const [lastScanResultMeta, setLastScanResultMeta] = useState<ScanResultMeta | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("clarity_token");
@@ -879,6 +903,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setWardrobeList([]);
     setFavoriteOutfitIds(new Set());
     setScanHistory([]);
+    setLastScanResultId(null);
+    setLastScanResultMeta(null);
   };
 
   return (
@@ -887,7 +913,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       language, setLanguage, t, bankInfo, updateBankInfo,
       wardrobeList, addWardrobeItem, deleteWardrobeItem, scanHistory, addScanHistory, deleteScanHistory, loadScanHistory,
       favoriteOutfitIds, toggleFavoriteOutfit,
-      lastScanResultId, setLastScanResultId,
+      lastScanResultId, setLastScanResultId, lastScanResultMeta, setLastScanResultMeta,
       saveBodyProfile, uploadAvatar
     }}>
       {children}

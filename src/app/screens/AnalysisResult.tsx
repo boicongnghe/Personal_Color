@@ -2,6 +2,7 @@ import { useNavigate } from "react-router";
 import {
   ArrowLeft, Sparkles, Check, X, Crown, Gem, Palette,
   Bookmark, Share2, ChevronRight, ShoppingBag, Shirt,
+  BarChart3, ThermometerSun, SunMedium, Waves,
 } from "lucide-react";
 import { BottomNav } from "../components/BottomNav";
 import { motion } from "motion/react";
@@ -23,9 +24,62 @@ const SEASON_VI: Record<string, string> = {
   Winter: "Mùa Đông",
 };
 
+const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
+
+const metricPercent = (value?: number, min = 0, max = 100) => {
+  if (typeof value !== "number") return 50;
+  return clamp(((value - min) / (max - min)) * 100);
+};
+
+const temperatureText = (temperature?: string) => {
+  if (temperature === "warm") return "Thiên ấm";
+  if (temperature === "cool") return "Thiên lạnh";
+  return "Trung hòa";
+};
+
+const clarityText = (chroma?: number) => {
+  if (typeof chroma !== "number") return "Đang đo";
+  if (chroma >= 18) return "Trong, rõ màu";
+  if (chroma >= 12) return "Cân bằng";
+  return "Dịu, ít bão hòa";
+};
+
+const lightnessText = (L?: number) => {
+  if (typeof L !== "number") return "Đang đo";
+  if (L >= 68) return "Sáng";
+  if (L <= 44) return "Trầm";
+  return "Trung bình";
+};
+
+const whySeason = (
+  season: string,
+  undertone: string,
+  contrast: string,
+  metrics?: { L?: number; chroma?: number; temperature?: string }
+) => {
+  const temp = temperatureText(metrics?.temperature).toLowerCase();
+  const light = lightnessText(metrics?.L).toLowerCase();
+  const clarity = clarityText(metrics?.chroma).toLowerCase();
+  return `Kết quả nghiêng về ${season} vì sắc da ${temp}, độ sáng ${light} và mức màu ${clarity}. Nhóm này khớp với ${undertone.toLowerCase()} cùng độ tương phản ${contrast.toLowerCase()}.`;
+};
+
+const bestColorReason = (season: string) => {
+  if (season === "Autumn") return "Tôn sắc ấm và giúp da trông đều màu hơn.";
+  if (season === "Spring") return "Làm gương mặt sáng và tươi hơn.";
+  if (season === "Summer") return "Giữ tổng thể mềm, mát và thanh hơn.";
+  return "Tạo độ sắc nét, làm đường nét nổi bật hơn.";
+};
+
+const avoidColorReason = (season: string) => {
+  if (season === "Autumn") return "Dễ làm da xỉn hoặc lạnh đi.";
+  if (season === "Spring") return "Có thể làm vẻ tươi sáng bị nặng màu.";
+  if (season === "Summer") return "Dễ tạo tương phản gắt với sắc da dịu.";
+  return "Có thể làm tổng thể kém sắc nét.";
+};
+
 export function AnalysisResult() {
   const navigate  = useNavigate();
-  const { t, lastScanResultId, language, scanHistory, user } = useAppContext();
+  const { t, lastScanResultId, lastScanResultMeta, language, scanHistory, user } = useAppContext();
 
   const hasScan = lastScanResultId !== null || scanHistory.length > 0;
 
@@ -39,6 +93,16 @@ export function AnalysisResult() {
   const contrast    = result ? (isVi ? result.contrastVi   : result.contrast)            : "";
   const description = result ? (isVi ? result.descriptionVi : result.description)        : "";
   const detail      = result ? (isVi ? result.detailedAnalysisVi : result.detailedAnalysis) : "";
+  const latestScan = scanHistory[0];
+  const scanMeta = lastScanResultMeta ?? {
+    accuracy: latestScan?.accuracy,
+    rawMetrics: latestScan?.rawMetrics,
+  };
+  const metrics = scanMeta.rawMetrics;
+  const confidence = scanMeta.accuracy ?? result?.confidence ?? 0;
+  const warmthPercent = metricPercent(metrics?.warmth, -4, 16);
+  const lightnessPercent = metricPercent(metrics?.L, 25, 82);
+  const clarityPercent = metricPercent(metrics?.chroma, 4, 24);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-nav">
@@ -122,13 +186,13 @@ export function AnalysisResult() {
               <div className="flex-1 h-2 bg-black/20 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: "0%" }}
-                  animate={{ width: `${result.confidence}%` }}
+                  animate={{ width: `${confidence}%` }}
                   transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
                   className="h-full bg-white rounded-full"
                 />
               </div>
               <span className="text-sm font-bold whitespace-nowrap">
-                {result.confidence}% {t("confidence")}
+                {confidence}% {t("confidence")}
               </span>
             </div>
           </div>
@@ -156,6 +220,69 @@ export function AnalysisResult() {
 
       {/* ── Best Colors ── */}
       <div className="px-6 mb-6">
+        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-purple-100 p-1.5 rounded-lg">
+              <BarChart3 className="w-5 h-5 text-purple-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Vì sao ra nhóm màu này?</h3>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed mb-4">
+            {result ? whySeason(SEASON_VI[result.season] ?? result.season, undertone, contrast, metrics) : ""}
+          </p>
+
+          <div className="space-y-3">
+            {[
+              { icon: ThermometerSun, label: "Độ ấm / lạnh", value: temperatureText(metrics?.temperature), percent: warmthPercent, left: "Lạnh", right: "Ấm", color: "from-sky-400 to-amber-400" },
+              { icon: SunMedium, label: "Độ sáng / trầm", value: lightnessText(metrics?.L), percent: lightnessPercent, left: "Trầm", right: "Sáng", color: "from-slate-500 to-yellow-300" },
+              { icon: Waves, label: "Độ trong / dịu", value: clarityText(metrics?.chroma), percent: clarityPercent, left: "Dịu", right: "Trong", color: "from-stone-300 to-fuchsia-400" },
+            ].map((item, i) => (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.18 + i * 0.08 }}
+                className="rounded-2xl bg-gray-50 border border-gray-100 p-3"
+              >
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <item.icon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide truncate">{item.label}</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">{item.value}</span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                  <motion.div
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${item.percent}%` }}
+                    transition={{ duration: 1, delay: 0.25 + i * 0.08 }}
+                    className={`h-full rounded-full bg-gradient-to-r ${item.color}`}
+                  />
+                </div>
+                <div className="flex justify-between mt-1.5 text-[10px] font-medium text-gray-400">
+                  <span>{item.left}</span>
+                  <span>{item.right}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {[
+              { label: "Mẫu da", value: metrics?.sampleCount ? `${metrics.sampleCount}` : "N/A" },
+              { label: "Warmth", value: typeof metrics?.warmth === "number" ? metrics.warmth.toFixed(1) : "N/A" },
+              { label: "Chroma", value: typeof metrics?.chroma === "number" ? metrics.chroma.toFixed(1) : "N/A" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl bg-purple-50 px-3 py-2 border border-purple-100">
+                <p className="text-[10px] uppercase font-bold text-purple-400">{item.label}</p>
+                <p className="text-sm font-bold text-purple-900 mt-0.5">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-6 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <div className="bg-green-100 p-1.5 rounded-lg">
             <Check className="w-5 h-5 text-green-600" />
@@ -179,6 +306,9 @@ export function AnalysisResult() {
                 {isVi ? color.nameVi : color.name}
               </p>
               <p className="text-[10px] text-gray-400 text-center mt-0.5">{color.hex}</p>
+              <p className="text-[10px] text-emerald-600 text-center mt-1 leading-snug">
+                {bestColorReason(result.season)}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -201,6 +331,9 @@ export function AnalysisResult() {
               />
               <p className="text-[10px] font-medium text-gray-600 text-center leading-tight truncate px-0.5">
                 {isVi ? color.nameVi : color.name}
+              </p>
+              <p className="text-[9px] text-red-500 text-center mt-1 leading-snug">
+                {avoidColorReason(result.season)}
               </p>
             </div>
           ))}

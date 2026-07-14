@@ -14,9 +14,16 @@ import { useColorAnalysis } from "../../hooks/useColorAnalysis";
 /** Trạng thái luồng camera */
 type CameraMode = "idle" | "requesting" | "denied" | "live" | "captured";
 
+const SCAN_GUIDES = [
+  "Đưa toàn bộ khuôn mặt vào khung oval",
+  "Bỏ kính, khẩu trang, mũ và tóc che mặt",
+  "Đứng nơi sáng đều, tránh ngược sáng hoặc đèn màu",
+  "Nhìn thẳng camera, giữ máy ổn định khi chụp",
+];
+
 export function FaceScan() {
   const navigate = useNavigate();
-  const { t, addScanHistory, scanHistory, user, setLastScanResultId } = useAppContext();
+  const { t, addScanHistory, scanHistory, user, setLastScanResultId, setLastScanResultMeta } = useAppContext();
   const { analyze } = useColorAnalysis();
 
   const [cameraMode, setCameraMode] = useState<CameraMode>("idle");
@@ -138,8 +145,14 @@ export function FaceScan() {
         colorType:   colorType.nameVi,
         colorTypeId: colorType.id,
         image:       capturedImage ?? colorType.sampleImage,
+        accuracy:    res.data?.accuracy,
+        rawMetrics:  res.data?.rawMetrics,
       });
       setLastScanResultId(colorType.id);
+      setLastScanResultMeta({
+        accuracy: res.data?.accuracy,
+        rawMetrics: res.data?.rawMetrics,
+      });
       navigate("/analysis-result");
     } catch (err: unknown) {
       setScanning(false);
@@ -474,8 +487,18 @@ export function FaceScan() {
                 </div>
 
                 {/* Instruction label */}
-                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                  <p className="text-white/90 text-xs font-medium drop-shadow-md">{t("alignFace")}</p>
+                <div className="absolute bottom-24 inset-x-4">
+                  <div className="bg-black/55 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/15 shadow-lg">
+                    <p className="text-white text-xs font-bold text-center mb-2">Đưa mặt vào khung, bỏ kính/khẩu trang trước khi chụp</p>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                      {SCAN_GUIDES.slice(0, 4).map((guide) => (
+                        <div key={guide} className="flex items-start gap-1.5 min-w-0">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0 mt-0.5" />
+                          <span className="text-[10px] leading-snug text-white/80">{guide}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Bottom controls */}
@@ -555,6 +578,25 @@ export function FaceScan() {
                   </div>
                 </motion.div>
 
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="absolute left-4 right-4 bottom-24"
+                >
+                  <div className="bg-black/55 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/15">
+                    <p className="text-white text-xs font-bold mb-2">Kiểm tra nhanh trước khi phân tích</p>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                      {["Mặt rõ trong khung", "Không kính/khẩu trang", "Ánh sáng đều", "Ảnh không bị rung"].map((item) => (
+                        <div key={item} className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />
+                          <span className="text-[10px] text-white/80">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+
                 {/* Bottom controls */}
                 <div className="absolute bottom-5 inset-x-0 flex items-center justify-between px-6">
                   <button
@@ -596,7 +638,7 @@ export function FaceScan() {
           <>
             {/* Instructions */}
             <div className="space-y-2">
-              {[t("scanInst1"), t("scanInst2"), t("scanInst3")].map((inst, i) => (
+              {SCAN_GUIDES.map((inst, i) => (
                 <div key={i} className={`flex items-start gap-3 bg-white rounded-2xl p-3 shadow-sm border border-purple-100 ${isLocked ? "opacity-50" : ""}`}>
                   <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">
                     {i + 1}
