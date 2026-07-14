@@ -55,6 +55,9 @@ export type WardrobeItem = {
   category: string;
   occasions: string[];
   image: string;
+  compatibilityScore?: number;
+  compatibilityLabel?: string;
+  compatibilityReason?: string;
 };
 
 export type ScanHistoryItem = {
@@ -698,7 +701,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Load wardrobe
     apiGetWardrobe()
       .then((r) => {
-        const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; occasions?: string[]; imageUrl?: string }> =
+        const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; occasions?: string[]; imageUrl?: string; compatibilityScore?: number; compatibilityLabel?: string; compatibilityReason?: string }> =
           r.data.data?.items || [];
         setWardrobeList(apiItems.map((item) => ({
           id: item._id,
@@ -708,6 +711,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             ? item.occasions
             : ["Thường ngày"],
           image: resolveImg(item.imageUrl),
+          compatibilityScore: item.compatibilityScore,
+          compatibilityLabel: item.compatibilityLabel,
+          compatibilityReason: item.compatibilityReason,
         })));
       })
       .catch(() => {});
@@ -837,7 +843,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const loadWardrobe = async (): Promise<void> => {
     try {
       const res = await apiGetWardrobe();
-      const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; occasions?: string[]; imageUrl?: string }> =
+      const apiItems: Array<{ _id: string; name: string; category: string; seasons?: string[]; occasions?: string[]; imageUrl?: string; compatibilityScore?: number; compatibilityLabel?: string; compatibilityReason?: string }> =
         res.data.data?.items || [];
       const transformed: WardrobeItem[] = apiItems.map((item) => ({
         id: item._id,
@@ -847,6 +853,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           ? item.occasions
           : ["Thường ngày"],
         image: resolveImg(item.imageUrl),
+        compatibilityScore: item.compatibilityScore,
+        compatibilityLabel: item.compatibilityLabel,
+        compatibilityReason: item.compatibilityReason,
       }));
       setWardrobeList(transformed);
     } catch {

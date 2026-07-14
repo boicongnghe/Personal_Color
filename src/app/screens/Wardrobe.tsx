@@ -32,6 +32,14 @@ const BADGE_COLORS: Record<string, string> = {
   "Áo khoác": "bg-amber-100 text-amber-700",
 };
 
+const getCompatibilityBadgeClass = (score?: number) => {
+  if (typeof score !== "number") return "bg-white/90 text-gray-600";
+  if (score >= 85) return "bg-emerald-500 text-white";
+  if (score >= 70) return "bg-lime-500 text-white";
+  if (score >= 55) return "bg-amber-400 text-white";
+  return "bg-rose-500 text-white";
+};
+
 const PREMIUM_FEATURES = [
   { icon: Wand2,   title: "AI Phối đồ tự động",  desc: "AI kết hợp trang phục từ tủ đồ của bạn cho từng dịp" },
   { icon: Palette, title: "Lọc theo bảng màu",   desc: "Chỉ hiển thị trang phục phù hợp tông màu da của bạn" },
@@ -559,6 +567,15 @@ export function Wardrobe() {
                             alt={item.name}
                             className="w-full h-full object-cover"
                           />
+                          {typeof item.compatibilityScore === "number" && (
+                            <div
+                              title={item.compatibilityReason || item.compatibilityLabel || "Độ hợp với tủ đồ"}
+                              className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-extrabold shadow-md backdrop-blur-sm flex items-center gap-1 ${getCompatibilityBadgeClass(item.compatibilityScore)}`}
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              {item.compatibilityScore}%
+                            </div>
+                          )}
                           <div className={`absolute bottom-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-bold ${BADGE_COLORS[item.category] ?? "bg-gray-100 text-gray-600"}`}>
                             {item.category}
                           </div>

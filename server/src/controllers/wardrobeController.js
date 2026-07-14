@@ -1,5 +1,6 @@
 const Wardrobe = require('../models/Wardrobe');
 const seasonalPalettes = require('../../../shared/seasonalPalettes');
+const { analyzeWardrobeCompatibility } = require('../integrations/wardrobeCompatibility');
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -61,7 +62,15 @@ const addItem = async (req, res, next) => {
     try { occasions = JSON.parse(req.body.occasions || '[]'); } catch { occasions = []; }
     if (!Array.isArray(occasions)) occasions = [];
 
-    const newItem = { name, color, category, seasons, occasions, ...(resolvedImageUrl ? { imageUrl: resolvedImageUrl } : {}) };
+    const currentWardrobe = await Wardrobe.findOne({ userId: req.user._id });
+    const baseItem = { name, color, category, seasons, occasions };
+    const compatibility = await analyzeWardrobeCompatibility({
+      newItem: baseItem,
+      imageUrl: resolvedImageUrl,
+      existingItems: currentWardrobe?.items || [],
+    });
+
+    const newItem = { ...baseItem, ...compatibility, ...(resolvedImageUrl ? { imageUrl: resolvedImageUrl } : {}) };
 
     const wardrobe = await Wardrobe.findOneAndUpdate(
       { userId: req.user._id },
@@ -87,11 +96,37 @@ const updateItem = async (req, res, next) => {
     // Cloudinary returns req.file.path as the full secure CDN URL
     const resolvedImageUrl = req.file?.path || req.file?.secure_url || null;
 
+    const wardrobeBeforeUpdate = await Wardrobe.findOne({ userId: req.user._id });
+    const currentItem = wardrobeBeforeUpdate?.items.id(req.params.itemId);
+    if (!currentItem) return res.status(404).json({ success: false, error: 'KhÃ´ng tÃ¬m tháº¥y' });
+
     const setFields = {};
     if (name && name.trim())          setFields['items.$.name']      = name.trim();
     if (category)                     setFields['items.$.category']  = category;
     if (Array.isArray(occasions))     setFields['items.$.occasions'] = occasions;
     if (resolvedImageUrl)             setFields['items.$.imageUrl']  = resolvedImageUrl;
+
+    const shouldRecheckCompatibility = Boolean(name || category || Array.isArray(occasions) || resolvedImageUrl);
+    if (shouldRecheckCompatibility) {
+      const updatedItem = {
+        name: name?.trim() || currentItem.name,
+        color: currentItem.color || '#808080',
+        category: category || currentItem.category,
+        seasons: currentItem.seasons || [],
+        occasions: Array.isArray(occasions) ? occasions : (currentItem.occasions || []),
+      };
+      const existingItems = (wardrobeBeforeUpdate.items || []).filter(
+        (item) => item._id.toString() !== req.params.itemId
+      );
+      const compatibility = await analyzeWardrobeCompatibility({
+        newItem: updatedItem,
+        imageUrl: resolvedImageUrl || currentItem.imageUrl,
+        existingItems,
+      });
+      setFields['items.$.compatibilityScore'] = compatibility.compatibilityScore;
+      setFields['items.$.compatibilityLabel'] = compatibility.compatibilityLabel;
+      setFields['items.$.compatibilityReason'] = compatibility.compatibilityReason;
+    }
 
     if (Object.keys(setFields).length === 0) return res.json({ success: true });
 
@@ -101,7 +136,7 @@ const updateItem = async (req, res, next) => {
       { new: true }
     );
     if (!wardrobe) return res.status(404).json({ success: false, error: 'Không tìm thấy' });
-    res.json({ success: true, data: { imageUrl: resolvedImageUrl } });
+    res.json({ success: true, data: { item: wardrobe.items.id(req.params.itemId), imageUrl: resolvedImageUrl } });
   } catch (err) {
     next(err);
   }

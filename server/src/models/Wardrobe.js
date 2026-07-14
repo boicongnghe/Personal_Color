@@ -8,6 +8,9 @@ const itemSchema = new mongoose.Schema({
   addedAt: { type: Date, default: Date.now },
   seasons: [String],
   occasions: [String],
+  compatibilityScore: { type: Number, min: 0, max: 100 },
+  compatibilityLabel: String,
+  compatibilityReason: String,
   clothingPhotoBuffer: Buffer,
   clothingPhotoMime:   String,
 });
